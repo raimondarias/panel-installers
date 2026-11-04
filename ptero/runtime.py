@@ -8,6 +8,19 @@ import tempfile
 
 from .common import InstallerError
 
+# Credentials that callers pass explicitly (``env=``) must never leak by
+# inheritance into unrelated commands such as apt-get, docker or ssh.
+PRIVATE_ENVIRONMENT = frozenset(("PTERO_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN", "RESTIC_PASSWORD",
+                                 "RESTIC_PASSWORD_FILE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+                                 "AWS_SESSION_TOKEN"))
+LOG_LIMIT = 5 * 1024 * 1024
+LOG_GENERATIONS = 3
+
+
+def child_environment(extra=None):
+    inherited = {key: value for key, value in os.environ.items() if key not in PRIVATE_ENVIRONMENT}
+    return {**inherited, "DEBIAN_FRONTEND": "noninteractive", **(extra or {})}
+
 
 class Runner:
     def __init__(self, ui, log):
@@ -24,8 +37,22 @@ class Runner:
         text = re.sub(r"ptl[a-z]_[A-Za-z0-9_-]+", "[TOKEN OCULTO]", text)
         return text
 
+    def rotate(self):
+        """Keep the private log bounded: installer.log plus three numbered generations."""
+        try:
+            if self.log.stat().st_size < LOG_LIMIT:
+                return
+        except FileNotFoundError:
+            return
+        for number in range(LOG_GENERATIONS - 1, 0, -1):
+            older = self.log.with_name(f"{self.log.name}.{number}")
+            if older.exists():
+                os.replace(older, self.log.with_name(f"{self.log.name}.{number + 1}"))
+        os.replace(self.log, self.log.with_name(self.log.name + ".1"))
+
     def record(self, text):
         self.log.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.rotate()
         with self.log.open("a", encoding="utf-8") as stream:
             self.log.chmod(0o600)
             stream.write(self.redact(text) + "\n")
@@ -42,7 +69,7 @@ class Runner:
                         args, stdin=input_file, stdout=None if interactive else (output or captured),
                         stderr=None if interactive else errors, check=False,
                         timeout=None if interactive else timeout,
-                        env={**os.environ, "DEBIAN_FRONTEND": "noninteractive", **(env or {})}, umask=umask, cwd=cwd)
+                        env=child_environment(env), umask=umask, cwd=cwd)
                 except (OSError, subprocess.TimeoutExpired) as exc:
                     raise InstallerError(f"No se pudo ejecutar {args[0]}: {exc}") from exc
             captured.seek(0)

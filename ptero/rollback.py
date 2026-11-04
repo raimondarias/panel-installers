@@ -148,9 +148,17 @@ def docker_rollback(i, state, work, saved):
             continue
         if target.is_symlink():
             raise InstallerError("Ruta de borrado no segura.")
+        # Swap by rename so an interruption never leaves the folder missing.
+        aside = target.with_name("." + folder + "-replaced-" + i.stamp())
         if target.exists():
-            shutil.rmtree(target)
-        os.replace(source, target)
+            os.replace(target, aside)
+        try:
+            os.replace(source, target)
+        except BaseException:
+            if aside.exists():
+                os.replace(aside, target)
+            raise
+        shutil.rmtree(aside, ignore_errors=True)
     i.dc("up", "-d", "--wait", "--wait-timeout", "240", "database", "cache", label="Preparando base de datos y Redis")
     i.dc("exec", "-T", "database", "sh", "-c", database_reset(state), label="Clearing the updated database schema")
     with (work / "database.sql").open("rb") as stream:

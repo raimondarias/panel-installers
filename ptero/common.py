@@ -1,4 +1,5 @@
 """Shared constants, errors, validators and safe file helpers. Standard library only."""
+import hashlib
 import ipaddress
 import json
 import os
@@ -66,6 +67,35 @@ def node_configuration(payload, url):
                 "system": {"sftp": {"bind_port": sftp}}, "remote": url}
     except (KeyError, TypeError, ValueError, AttributeError) as exc:
         raise InstallerError("La API no devolvió una configuración de nodo válida.") from exc
+
+
+def file_sha256(path):
+    """Stream a file through SHA-256 without loading it into memory."""
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def write_checksum(path):
+    """Write the ``<file>.sha256`` companion used by every installer archive."""
+    value = file_sha256(path)
+    atomic_write(Path(str(path) + ".sha256"), value + "\n")
+    return value
+
+
+def download(url, target, limit, timeout=90):
+    """Stream an HTTPS download to ``target`` with a size cap; return its SHA-256."""
+    digest, size = hashlib.sha256(), 0
+    with urllib.request.urlopen(url, timeout=timeout) as response, Path(target).open("wb") as stream:
+        while chunk := response.read(1024 * 1024):
+            size += len(chunk)
+            if size > limit:
+                raise InstallerError("The download exceeds its size limit.")
+            digest.update(chunk)
+            stream.write(chunk)
+    return digest.hexdigest()
 
 
 def atomic_write(path, content, mode=0o600):

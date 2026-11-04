@@ -8,19 +8,10 @@ import shlex
 import shutil
 import tarfile
 import tempfile
-from .core import InstallerError, atomic_write, write_json
+from .common import InstallerError, atomic_write, file_sha256, write_json
 
 
-def checksum(path):
-    with Path(path).open('rb') as stream:
-        return hashlib.sha256(stream.read()).hexdigest() if Path(path).stat().st_size < 1024 * 1024 else digest(stream)
-
-
-def digest(stream):
-    h = hashlib.sha256()
-    for chunk in iter(lambda: stream.read(1024 * 1024), b''):
-        h.update(chunk)
-    return h.hexdigest()
+checksum = file_sha256
 
 
 def verified(path):
@@ -167,7 +158,7 @@ class ScheduledBackups:
     def load_profile(self):
         profile = self.i.load(self.profile)
         if profile.get('games') or profile.get('include_games'):
-            self.ui.say('Legacy game backup options were removed. This profile now backs up only the Panel and Wings configuration.', 'warning')
+            self.ui.say('Legacy game backup options were removed. This profile now backs up only the Panel and Wings configuration.', 'warn')
         if profile.get('scope') != SCOPE or 'games' in profile or 'include_games' in profile:
             profile.pop('games', None)
             profile.pop('include_games', None)

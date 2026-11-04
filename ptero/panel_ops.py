@@ -7,7 +7,8 @@ import shutil
 import tarfile
 import tempfile
 
-from .common import (PROJECT, SCHEMA, InstallerError, atomic_write, secure_extract, valid_host,
+from .common import (PROJECT, SCHEMA, InstallerError, atomic_write, file_sha256, secure_extract, valid_host,
+                     write_checksum,
                      version_key, write_json)
 
 
@@ -300,11 +301,7 @@ class PanelMixin:
                         self.dc("stop", "database")
             temporary.chmod(0o600)
             os.replace(temporary, target)
-            digest = hashlib.sha256()
-            with target.open("rb") as stream:
-                while chunk := stream.read(1024 * 1024):
-                    digest.update(chunk)
-            atomic_write(Path(str(target) + ".sha256"), digest.hexdigest() + "\n")
+            write_checksum(target)
             self.ui.say(f"Backup creado: {target} (contiene secretos; guárdalo fuera del servidor)", "ok")
             return target
         except BaseException:
@@ -316,11 +313,8 @@ class PanelMixin:
         checksum = Path(str(archive) + ".sha256")
         if not checksum.is_file():
             raise InstallerError("Falta el archivo .sha256 del backup.")
-        digest = hashlib.sha256()
-        with archive.open("rb") as stream:
-            while chunk := stream.read(1024 * 1024):
-                digest.update(chunk)
-        if digest.hexdigest() != checksum.read_text().strip():
+        recorded = checksum.read_text().split()
+        if not recorded or file_sha256(archive) != recorded[0]:
             raise InstallerError("El checksum del backup no coincide.")
         from .backups import panel_archive
         panel_archive(archive)

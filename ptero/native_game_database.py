@@ -1,5 +1,4 @@
 """Separate native SQL instance; never creates privileged users in Panel SQL."""
-import contextlib
 import hashlib
 import ipaddress
 import json
@@ -8,7 +7,6 @@ import re
 import shlex
 import tempfile
 import time
-from pathlib import Path
 from .core import InstallerError, atomic_write, write_json
 
 

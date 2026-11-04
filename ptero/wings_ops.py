@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 
 from . import __version__
-from .common import (PROJECT, SCHEMA, WINGS_VERSION, InstallerError, NoRedirect, atomic_write,
+from .common import (PROJECT, SCHEMA, WINGS_VERSION, InstallerError, NoRedirect, atomic_write, download,
                      node_configuration, valid_domain, valid_email, write_json)
 
 
@@ -28,13 +28,10 @@ class WingsMixin:
         if url != expected:
             raise InstallerError("La descarga de Wings no corresponde al repositorio oficial.")
         target.parent.mkdir(parents=True, exist_ok=True, mode=0o755)
-        digest = hashlib.sha256()
         try:
-            with self.ui.busy("Descargando y verificando Wings"), urllib.request.urlopen(url, timeout=90) as response, target.open("wb") as stream:
-                while chunk := response.read(1024 * 1024):
-                    digest.update(chunk)
-                    stream.write(chunk)
-            if "sha256:" + digest.hexdigest() != asset["digest"]:
+            with self.ui.busy("Descargando y verificando Wings"):
+                value = download(url, target, 256 * 1024**2)
+            if "sha256:" + value != asset["digest"]:
                 raise InstallerError("El SHA-256 de Wings no coincide. No se ejecutará el archivo.")
             target.chmod(0o755)
             self.run.run([target, "version"], label="Comprobando ejecutable Wings")
