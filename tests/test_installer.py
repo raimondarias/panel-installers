@@ -5,6 +5,7 @@ import json
 import os
 import pty
 from pathlib import Path
+import secrets
 import shutil
 import socket
 import subprocess
@@ -234,9 +235,11 @@ class ComposeTests(BaseTest):
         self.assertIn("v2.0.0-beta.2", config["services"]["panel"]["image"])
 
     def test_interpolation_escapes_smtp_dollars(self):
-        self.state["mail_password"] = 'a$pass${HOME}$$"\\secret'
+        token = secrets.token_hex(4)
+        self.state["mail_password"] = "a$" + token + '${HOME}$$"\\' + token
         config = self.installer.compose_config(self.state)
-        self.assertEqual(config["services"]["panel"]["environment"]["MAIL_PASSWORD"], 'a$$pass$${HOME}$$$$"\\secret')
+        expected = "a$$" + token + '$${HOME}$$$$"\\' + token
+        self.assertEqual(config["services"]["panel"]["environment"]["MAIL_PASSWORD"], expected)
 
     def test_http_does_not_bind_https(self):
         config = self.installer.compose_config(self.state)

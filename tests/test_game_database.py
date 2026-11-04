@@ -4,6 +4,7 @@ import json
 import contextlib
 import io
 import os
+import secrets
 from pathlib import Path
 import shutil
 import subprocess
@@ -396,8 +397,9 @@ class RealSQLTests(BaseTest):
                     command = [binaries["mariadb"], "--no-defaults", "--socket=" + str(socket), "--batch"]
                     result = subprocess.run([*command, "--user=root"], input=host.init_sql(settings), text=True, capture_output=True)
                     self.assertEqual(result.returncode, 0, result.stderr)
+                    game_password = secrets.token_hex(16)  # Disposable account in this temporary server.
                     sql = (
-                        "CREATE DATABASE s1_example; CREATE USER 'u1_test'@'%' IDENTIFIED BY 'Game-pass-123!';"
+                        f"CREATE DATABASE s1_example; CREATE USER 'u1_test'@'%' IDENTIFIED BY '{game_password}';"
                         "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,ALTER,REFERENCES,INDEX,LOCK TABLES,CREATE ROUTINE,ALTER "
                         "ROUTINE,EXECUTE,CREATE TEMPORARY TABLES,CREATE VIEW,SHOW VIEW,EVENT,TRIGGER ON s1_example.* "
                         "TO 'u1_test'@'%';"
@@ -413,7 +415,7 @@ class RealSQLTests(BaseTest):
                     self.assertEqual(result.returncode, 0, result.stderr)
                     result = subprocess.run(
                         [*command, "--user=u1_test", "--execute=SELECT id FROM s1_example.test"],
-                        env={**os.environ, "MYSQL_PWD": "Game-pass-123!"},
+                        env={**os.environ, "MYSQL_PWD": game_password},
                         text=True,
                         capture_output=True,
                     )
