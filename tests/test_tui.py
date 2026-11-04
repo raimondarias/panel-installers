@@ -1,4 +1,5 @@
 """Navigation contracts plus real ncurses keyboard, resize and restoration tests."""
+
 import contextlib
 import curses
 import fcntl
@@ -16,7 +17,7 @@ import termios
 import time
 from unittest.mock import patch
 
-from test_installer import BaseTest, QuietUI
+from test_installer import BaseTest
 import installer as app
 from ptero.cli import ENTRIES
 from ptero.navigation import Item, inventory, menu_items, prerequisite, prepare_action
@@ -53,16 +54,21 @@ class NavigationTests(BaseTest):
         with patch.object(self.ui, "yes", return_value=False), patch.object(self.installer, "install_panel") as setup:
             self.assertFalse(prepare_action(self.ui, "smtp", state, lambda _: setup(), lambda: state))
         setup.assert_not_called()
+
         def installed(_):
             self.installer.save_panel(self.state)
+
         with patch.object(self.ui, "yes", return_value=True):
             self.assertTrue(prepare_action(self.ui, "smtp", state, installed, lambda: inventory(self.installer)))
 
     def test_removal_on_empty_machine_never_offers_installation(self):
         state = inventory(self.installer)
         for action in ("uninstall-panel", "uninstall-wings", "uninstall-all"):
-            with self.subTest(action=action), patch.object(self.ui, "yes", return_value=True) as question, \
-                 patch.object(self.installer, "install_panel") as setup:
+            with (
+                self.subTest(action=action),
+                patch.object(self.ui, "yes", return_value=True) as question,
+                patch.object(self.installer, "install_panel") as setup,
+            ):
                 self.assertFalse(prepare_action(self.ui, action, state, lambda _: setup(), lambda: state))
             question.assert_not_called()
             setup.assert_not_called()
@@ -78,9 +84,12 @@ class NavigationTests(BaseTest):
 
     def test_guided_setup_cancellation_never_runs_the_original_operation(self):
         self.ui.answers = ["17", "0"]
-        with patch.object(self.ui, "yes", return_value=True), \
-             patch.object(self.installer, "install_panel", side_effect=app.Cancelled()), \
-             patch.object(self.installer, "mail") as mail, contextlib.redirect_stdout(io.StringIO()):
+        with (
+            patch.object(self.ui, "yes", return_value=True),
+            patch.object(self.installer, "install_panel", side_effect=app.Cancelled()),
+            patch.object(self.installer, "mail") as mail,
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
             self.installer.menu()
         mail.assert_not_called()
 
@@ -97,8 +106,17 @@ class NavigationTests(BaseTest):
 
     def test_retained_shortcuts_are_stable_and_game_backup_actions_are_removed(self):
         items = {item.value: item for item in menu_items(ENTRIES, inventory(self.installer))}
-        for action, shortcut in {"language": "23", "create-node": "24", "backup-schedule": "28", "backup-run": "29",
-                                  "backup-download": "30", "health": "31", "resume": "32", "remote-node": "33", "remote-database": "34"}.items():
+        for action, shortcut in {
+            "language": "23",
+            "create-node": "24",
+            "backup-schedule": "28",
+            "backup-run": "29",
+            "backup-download": "30",
+            "health": "31",
+            "resume": "32",
+            "remote-node": "33",
+            "remote-database": "34",
+        }.items():
             self.assertEqual(items[action].shortcut, shortcut)
         self.assertFalse({"22", "25", "26", "27"} & {item.shortcut for item in items.values()})
         self.assertFalse({"backup-game-database", "restore-game-database", "backup-games", "restore-games"} & items.keys())
@@ -126,11 +144,16 @@ class NavigationTests(BaseTest):
     def test_direct_action_guides_setup_and_never_reports_success_when_declined(self):
         from ptero.cli import main
         from unittest.mock import Mock
+
         original = Mock()
         setup = Mock(side_effect=lambda: self.installer.save_panel(self.state))
         actions = {"smtp": original, "install-panel": setup}
-        with patch("ptero.core.Installer", return_value=self.installer), patch("ptero.cli.UI", return_value=self.ui), \
-             patch("os.geteuid", return_value=0), patch.object(self.installer, "actions", return_value=actions):
+        with (
+            patch("ptero.core.Installer", return_value=self.installer),
+            patch("ptero.cli.UI", return_value=self.ui),
+            patch("os.geteuid", return_value=0),
+            patch.object(self.installer, "actions", return_value=actions),
+        ):
             self.assertEqual(main(["--language", "en", "--plain", "smtp"]), 1)
             original.assert_not_called()
             setup.assert_not_called()
@@ -142,15 +165,22 @@ class NavigationTests(BaseTest):
 
     def test_startup_migrates_owned_schedule_only_for_menu_or_mutating_actions(self):
         from ptero.cli import main
+
         self.installer.save_panel(self.state)
-        app.write_json(self.paths.base / "backup-profile.json", {"schema": 1, "owner": app.PROJECT,
-            "repository": "/private/backups", "backup_id": "ptero-test", "calendar": "daily"})
+        app.write_json(
+            self.paths.base / "backup-profile.json",
+            {"schema": 1, "owner": app.PROJECT, "repository": "/private/backups", "backup_id": "ptero-test", "calendar": "daily"},
+        )
         for action in ("admin", "diagnose", "health", "firewall", "logs", "database-credentials", "backup-download"):
-            with self.subTest(action=action), patch("ptero.core.Installer", return_value=self.installer), \
-                 patch("ptero.cli.UI", return_value=self.ui), patch("os.geteuid", return_value=0), \
-                 patch.object(self.installer, "actions", return_value={action: lambda: None}), \
-                 patch("ptero.backups.ScheduledBackups.migrate") as migrate, \
-                 patch("ptero.navigation.prepare_action", return_value=True):
+            with (
+                self.subTest(action=action),
+                patch("ptero.core.Installer", return_value=self.installer),
+                patch("ptero.cli.UI", return_value=self.ui),
+                patch("os.geteuid", return_value=0),
+                patch.object(self.installer, "actions", return_value={action: lambda: None}),
+                patch("ptero.backups.ScheduledBackups.migrate") as migrate,
+                patch("ptero.navigation.prepare_action", return_value=True),
+            ):
                 self.assertEqual(main(["--language", "en", "--plain", action]), 0)
                 self.assertEqual(migrate.call_count, 1 if action == "admin" else 0)
 
@@ -197,6 +227,7 @@ class NavigationTests(BaseTest):
 
     def test_language_switch_defaults_to_the_current_language(self):
         from ptero.cli import select_language
+
         ui = app.UI(False, "pt-BR", plain=True)
         with patch("builtins.input", return_value=""), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(select_language(ui), "pt-BR")
@@ -255,7 +286,9 @@ class WidgetTests(BaseTest):
     def test_arrow_navigation_and_numeric_shortcuts(self):
         for keys in ([curses.KEY_DOWN, "\n"], ["2", "\n"]):
             terminal = self.terminal(keys)
-            result = terminal.select("Panel deployment", [Item("native", "Standalone", shortcut="1"), Item("docker", "Docker", shortcut="2")])
+            result = terminal.select(
+                "Panel deployment", [Item("native", "Standalone", shortcut="1"), Item("docker", "Docker", shortcut="2")]
+            )
             self.assertEqual(result, "docker")
 
     def test_mouse_click_selects_options_and_sidebar_groups(self):
@@ -281,7 +314,9 @@ class WidgetTests(BaseTest):
     def test_mouse_cannot_activate_disabled_options_or_empty_space(self):
         terminal = self.terminal([curses.KEY_MOUSE, curses.KEY_MOUSE, curses.KEY_HOME, "\n"])
         with patch("ptero.tui.curses.getmouse", side_effect=[(0, 9, 9, 0, curses.BUTTON1_CLICKED), (0, 9, 20, 0, curses.BUTTON1_CLICKED)]):
-            result = terminal.select("Overview", [Item("ok", "Install"), Item("blocked", "Database", enabled=False, reason="Install the Panel first")])
+            result = terminal.select(
+                "Overview", [Item("ok", "Install"), Item("blocked", "Database", enabled=False, reason="Install the Panel first")]
+            )
         self.assertEqual(result, "ok")
         self.assertTrue(any("Install the Panel first" in text for text in terminal.window.drawn))
 
@@ -291,24 +326,32 @@ class WidgetTests(BaseTest):
             self.assertEqual(terminal.select("Options", [Item(1, "First"), Item(2, "Second")]), 2)
         terminal = self.terminal([curses.KEY_MOUSE, "\n"], size=(24, 80))
         with patch("ptero.tui.curses.getmouse", return_value=(0, 12, 7, 0, curses.BUTTON1_CLICKED)):
-            self.assertEqual(terminal.select("Groups", [Item(1, "First", group="Install"), Item(2, "Second", group="Maintenance")], grouped=True), 2)
+            self.assertEqual(
+                terminal.select("Groups", [Item(1, "First", group="Install"), Item(2, "Second", group="Maintenance")], grouped=True), 2
+            )
 
     def test_disabled_actions_explain_the_prerequisite_without_returning_it(self):
         terminal = self.terminal(["2", "\n", "1", "\n"])
-        result = terminal.select("Overview", [Item("ok", "Install", shortcut="1"),
-                                Item("blocked", "Database", enabled=False, reason="Install the Panel first", shortcut="2")])
+        result = terminal.select(
+            "Overview",
+            [
+                Item("ok", "Install", shortcut="1"),
+                Item("blocked", "Database", enabled=False, reason="Install the Panel first", shortcut="2"),
+            ],
+        )
         self.assertEqual(result, "ok")
         self.assertTrue(any("Install the Panel first" in text for text in terminal.window.drawn))
 
     def test_group_navigation_and_search(self):
-        items = [Item("install", "Install Panel", group="Install"),
-                 Item("diagnose", "Status and diagnostics", group="Maintenance")]
+        items = [Item("install", "Install Panel", group="Install"), Item("diagnose", "Status and diagnostics", group="Maintenance")]
         terminal = self.terminal(["\t", "\n"])
         self.assertEqual(terminal.select("Overview", items, grouped=True), "diagnose")
 
     def test_refresh_and_numeric_navigation_preserve_the_actual_action_group(self):
-        items = [Item("install", "Install Panel", group="Install", shortcut="1"),
-                 Item("diagnose", "Status and diagnostics", group="Maintenance", shortcut="14")]
+        items = [
+            Item("install", "Install Panel", group="Install", shortcut="1"),
+            Item("diagnose", "Status and diagnostics", group="Maintenance", shortcut="14"),
+        ]
         terminal = self.terminal([curses.KEY_F5])
         self.assertEqual(terminal.select("Overview", items, grouped=True), "refresh")
         terminal = self.terminal(["1", "4", "\n"])
@@ -351,9 +394,14 @@ class WidgetTests(BaseTest):
 
     def test_initialization_failure_falls_back_after_restoring_terminal(self):
         ui = app.UI(False)
-        with patch("sys.stdin.isatty", return_value=True), patch("sys.stdout.isatty", return_value=True), \
-             patch.dict(os.environ, {"TERM": "xterm"}), patch("ptero.tui.Terminal.start", side_effect=RuntimeError("unsupported")), \
-             patch("ptero.tui.Terminal.close") as close, patch.object(ui, "say"):
+        with (
+            patch("sys.stdin.isatty", return_value=True),
+            patch("sys.stdout.isatty", return_value=True),
+            patch.dict(os.environ, {"TERM": "xterm"}),
+            patch("ptero.tui.Terminal.start", side_effect=RuntimeError("unsupported")),
+            patch("ptero.tui.Terminal.close") as close,
+            patch.object(ui, "say"),
+        ):
             with ui.session():
                 self.assertIsNone(ui.screen)
         close.assert_called_once()
@@ -364,12 +412,20 @@ class PseudoTerminalTests(BaseTest):
         master, slave = pty.openpty()
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 28, 100, 0, 0))
         original = termios.tcgetattr(slave)
-        process = subprocess.Popen([sys.executable, "-c", code], cwd=ROOT, stdin=slave, stdout=slave, stderr=slave,
-                                   env={**os.environ, "TERM": "xterm-256color", "LANG": "C.UTF-8", **(env or {})})
+        process = subprocess.Popen(
+            [sys.executable, "-c", code],
+            cwd=ROOT,
+            stdin=slave,
+            stdout=slave,
+            stderr=slave,
+            env={**os.environ, "TERM": "xterm-256color", "LANG": "C.UTF-8", **(env or {})},
+        )
+
         def stop():
             if process.poll() is None:
                 process.kill()
             process.wait(timeout=5)
+
         self.addCleanup(stop)
         self.addCleanup(lambda: os.close(master))
         self.addCleanup(lambda: os.close(slave))
@@ -390,10 +446,12 @@ class PseudoTerminalTests(BaseTest):
         self.fail("Missing PTY marker " + marker + ": " + data.decode("utf-8", "replace")[-3000:])
 
     def test_real_menu_guided_prerequisite_diagnostics_and_clean_exit(self):
-        code = ("import tempfile;from pathlib import Path;from ptero.core import Installer,Paths;from ptero.ui import UI;"
-                "root=tempfile.TemporaryDirectory();ui=UI(language='es');i=Installer(Paths(Path(root.name)),ui);\n"
-                "with ui.session():\n assert ui.screen is not None\n i.menu()\n"
-                "print('TERMINAL_RESTORED',flush=True)")
+        code = (
+            "import tempfile;from pathlib import Path;from ptero.core import Installer,Paths;from ptero.ui import UI;"
+            "root=tempfile.TemporaryDirectory();ui=UI(language='es');i=Installer(Paths(Path(root.name)),ui);\n"
+            "with ui.session():\n assert ui.screen is not None\n i.menu()\n"
+            "print('TERMINAL_RESTORED',flush=True)"
+        )
         process, master, slave, original = self.spawn(code)
         self.receive(process, master, "PTERO")
         os.write(master, b"20\r")
@@ -415,9 +473,11 @@ class PseudoTerminalTests(BaseTest):
             self.assertEqual(restored[3] & bit, original[3] & bit)
 
     def test_real_mouse_click_selects_choice_and_restores_terminal(self):
-        code = ("from ptero.ui import UI;ui=UI();\nwith ui.session():\n"
-                " value=ui.choice('Panel deployment',[('native','Standalone',''),('docker','Docker','')])\n"
-                "print('MOUSE_RESULT='+value,flush=True)")
+        code = (
+            "from ptero.ui import UI;ui=UI();\nwith ui.session():\n"
+            " value=ui.choice('Panel deployment',[('native','Standalone',''),('docker','Docker','')])\n"
+            "print('MOUSE_RESULT='+value,flush=True)"
+        )
         process, master, slave, original = self.spawn(code)
         self.receive(process, master, "Panel deployment")
         os.write(master, b"\x1b[<0;10;10M\x1b[<0;10;10m")
@@ -430,6 +490,7 @@ class PseudoTerminalTests(BaseTest):
 
     def test_bootstrap_mouse_selects_spanish_and_opens_tui(self):
         import test_distribution
+
         fixture = test_distribution.BootstrapTests()
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
@@ -441,12 +502,14 @@ class PseudoTerminalTests(BaseTest):
         self.receive(process, master, "Vista previa de la interfaz", timeout=15)
         os.write(master, b"q")
         self.assertEqual(process.wait(timeout=5), 0)
-        self.assertTrue(all("/languages/es/" in item["url"] for item in fixture.downloads()[1:]))
+        self.assertTrue(fixture.downloads()[-1]["url"].endswith("/installer-es.tar.gz"))
 
     def test_resize_and_sigint_restore_real_terminal(self):
-        code = ("from ptero.ui import UI;ui=UI();\ntry:\n with ui.session():\n"
-                "  ui.choice('Panel deployment',[(1,'Standalone',''),(2,'Docker','')])\n"
-                "except KeyboardInterrupt: pass\nprint('INTERRUPTED_CLEANLY',flush=True)")
+        code = (
+            "from ptero.ui import UI;ui=UI();\ntry:\n with ui.session():\n"
+            "  ui.choice('Panel deployment',[(1,'Standalone',''),(2,'Docker','')])\n"
+            "except KeyboardInterrupt: pass\nprint('INTERRUPTED_CLEANLY',flush=True)"
+        )
         process, master, slave, original = self.spawn(code)
         self.receive(process, master, "PTERO")
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 10, 35, 0, 0))
@@ -461,7 +524,11 @@ class PseudoTerminalTests(BaseTest):
 
     def test_plain_flag_and_dumb_terminal_do_not_enter_alternate_screen(self):
         for plain, term in ((True, "xterm"), (False, "dumb")):
-            code = f"from ptero.ui import UI;ui=UI(plain={plain!r});\nwith ui.session():\n assert ui.screen is None\nprint('PLAIN_OK',flush=True)"
+            code = (
+                f"from ptero.ui import UI;ui=UI(plain={plain!r});\n"
+                f"with ui.session():\n assert ui.screen is None\n"
+                f"print('PLAIN_OK',flush=True)"
+            )
             process, master, _, _ = self.spawn(code, {"TERM": term})
             output = self.receive(process, master, "PLAIN_OK")
             self.assertNotIn(b"\x1b[?1049h", output)
@@ -482,6 +549,7 @@ class PseudoTerminalTests(BaseTest):
 
     def test_bootstrap_arrows_download_only_selected_package_and_open_real_tui(self):
         import test_distribution
+
         fixture = test_distribution.BootstrapTests()
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
@@ -495,20 +563,24 @@ class PseudoTerminalTests(BaseTest):
         self.assertEqual(process.wait(timeout=5), 0)
         downloads = fixture.downloads()
         self.assertEqual(len(downloads), 3)
-        self.assertTrue(all("/languages/es/" in item["url"] for item in downloads[1:]))
+        self.assertTrue(downloads[-1]["url"].endswith("/installer-es.tar.gz"))
 
     def test_busy_animation_updates_real_terminal_and_restores_it(self):
-        code = ("import os,time;os.environ.pop('NO_COLOR',None);from ptero.ui import UI;ui=UI();\n"
-                "with ui.session():\n with ui.busy('Checking your installation plan'): time.sleep(0.5)\n"
-                "print('ANIMATION_FINISHED',flush=True)")
+        code = (
+            "import os,time;os.environ.pop('NO_COLOR',None);from ptero.ui import UI;ui=UI();\n"
+            "with ui.session():\n with ui.busy('Checking your installation plan'): time.sleep(0.5)\n"
+            "print('ANIMATION_FINISHED',flush=True)"
+        )
         process, master, _, _ = self.spawn(code)
         output = self.receive(process, master, "ANIMATION_FINISHED").decode("utf-8", "replace")
         self.assertGreaterEqual(sum(frame in output for frame in "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"), 2)
         self.assertEqual(process.wait(timeout=5), 0)
 
     def test_preview_real_forms_validation_confirmation_and_simulated_install(self):
-        code = ("import os;os.environ.pop('NO_COLOR',None);from ptero.cli import main;"
-                "raise SystemExit(main(['--language','en','--preview']))")
+        code = (
+            "import os;os.environ.pop('NO_COLOR',None);from ptero.cli import main;"
+            "raise SystemExit(main(['--language','en','--preview']))"
+        )
         process, master, slave, original = self.spawn(code)
         self.receive(process, master, "Interface preview")
         os.write(master, b"2\r")

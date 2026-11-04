@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Run a real deployment inside a verified disposable cloud VM on a CI host."""
+
 import argparse
 import hashlib
 import json
@@ -54,11 +55,28 @@ def main():
         report['image_checksum'] = digest.hexdigest()
         subprocess.run(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-f', str(work / 'key')], check=True)
         key = (work / 'key.pub').read_text().strip()
-        (work / 'user-data').write_text('#cloud-config\ndisable_root: false\nssh_pwauth: false\nusers:\n  - name: root\n    ssh_authorized_keys:\n      - ' + key + '\n')
+        (work / 'user-data').write_text(
+            '#cloud-config\ndisable_root: false\nssh_pwauth: false\nusers:\n  - name: root\n    ssh_authorized_keys:\n      - ' + key + '\n'
+        )
         (work / 'meta-data').write_text('instance-id: ptero-integration\nlocal-hostname: ptero-integration\n')
-        subprocess.run(['genisoimage', '-quiet', '-output', str(work / 'seed.iso'), '-volid', 'cidata', '-joliet', '-rock',
-                        str(work / 'user-data'), str(work / 'meta-data')], check=True)
-        subprocess.run(['qemu-img', 'create', '-f', 'qcow2', '-F', 'qcow2', '-b', str(work / 'base.img'), str(work / 'disk.qcow2'), '24G'], check=True)
+        subprocess.run(
+            [
+                'genisoimage',
+                '-quiet',
+                '-output',
+                str(work / 'seed.iso'),
+                '-volid',
+                'cidata',
+                '-joliet',
+                '-rock',
+                str(work / 'user-data'),
+                str(work / 'meta-data'),
+            ],
+            check=True,
+        )
+        subprocess.run(
+            ['qemu-img', 'create', '-f', 'qcow2', '-F', 'qcow2', '-b', str(work / 'base.img'), str(work / 'disk.qcow2'), '24G'], check=True
+        )
         with socket.socket() as probe:
             probe.bind(('127.0.0.1', 22022))
         report['stage'] = 'boot'
@@ -67,14 +85,48 @@ def main():
         # virtio block device so cloud-init can discover it on every image.
         # Keep an emulated VGA device even with no graphical window: Debian 13's
         # GRUB gfxterm/serial configuration can loop without it (Debian #1111240).
-        machine = subprocess.Popen([
-            'qemu-system-x86_64', '-enable-kvm', '-cpu', 'host', '-m', '2560', '-smp', '2', '-vga', 'std',
-            '-drive', f'file={work}/disk.qcow2,if=virtio,format=qcow2',
-            '-drive', f'file={work}/seed.iso,if=virtio,format=raw,readonly=on',
-            '-netdev', 'user,id=net0,hostfwd=tcp:127.0.0.1:22022-:22',
-            '-device', 'virtio-net-pci,netdev=net0,romfile=', '-display', 'none', '-serial', f'file:{work}/console.log'])
-        ssh = ['ssh', '-i', str(work / 'key'), '-p', '22022', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new',
-               '-o', 'UserKnownHostsFile=' + str(work / 'known_hosts'), '-o', 'ConnectTimeout=5', 'root@127.0.0.1']
+        machine = subprocess.Popen(
+            [
+                'qemu-system-x86_64',
+                '-enable-kvm',
+                '-cpu',
+                'host',
+                '-m',
+                '2560',
+                '-smp',
+                '2',
+                '-vga',
+                'std',
+                '-drive',
+                f'file={work}/disk.qcow2,if=virtio,format=qcow2',
+                '-drive',
+                f'file={work}/seed.iso,if=virtio,format=raw,readonly=on',
+                '-netdev',
+                'user,id=net0,hostfwd=tcp:127.0.0.1:22022-:22',
+                '-device',
+                'virtio-net-pci,netdev=net0,romfile=',
+                '-display',
+                'none',
+                '-serial',
+                f'file:{work}/console.log',
+            ]
+        )
+        ssh = [
+            'ssh',
+            '-i',
+            str(work / 'key'),
+            '-p',
+            '22022',
+            '-o',
+            'BatchMode=yes',
+            '-o',
+            'StrictHostKeyChecking=accept-new',
+            '-o',
+            'UserKnownHostsFile=' + str(work / 'known_hosts'),
+            '-o',
+            'ConnectTimeout=5',
+            'root@127.0.0.1',
+        ]
         ready = False
         try:
             deadline = time.monotonic() + 300
@@ -100,9 +152,17 @@ def main():
             with (work / 'runtime.tar.gz').open('rb') as stream:
                 subprocess.run([*ssh, 'mkdir -p /root/ptero-ci && tar -xz -C /root/ptero-ci'], stdin=stream, check=True)
             if os.environ.get('PTERO_GITHUB_TOKEN'):
-                subprocess.run([*ssh, 'umask 077; cat > /root/.ptero-github-token'], input=os.environ['PTERO_GITHUB_TOKEN'].encode(), check=True)
-            result = subprocess.run([*ssh, 'cd /root/ptero-ci && python3 tests/integration/deploy.py --disposable '
-                                     f'--method {args.method} --engine {args.engine} --cycle --full'], timeout=3000)
+                subprocess.run(
+                    [*ssh, 'umask 077; cat > /root/.ptero-github-token'], input=os.environ['PTERO_GITHUB_TOKEN'].encode(), check=True
+                )
+            result = subprocess.run(
+                [
+                    *ssh,
+                    'cd /root/ptero-ci && python3 tests/integration/deploy.py --disposable '
+                    f'--method {args.method} --engine {args.engine} --cycle --full',
+                ],
+                timeout=3000,
+            )
             fetched = subprocess.run([*ssh, 'cat /root/ptero-ci/test-results/integration-result.json'], capture_output=True, text=True)
             if fetched.returncode == 0:
                 report.update(json.loads(fetched.stdout))
@@ -112,7 +172,16 @@ def main():
             if result.returncode:
                 subprocess.run([*ssh, 'tail -160 /var/log/pterodactyl-installer/installer.log'], check=False)
                 subprocess.run([*ssh, 'journalctl -u wings -u ptero-game-sql-native -u ptero-game-databases --no-pager -n 60'], check=False)
-                subprocess.run([*ssh, 'docker compose --project-name ptero-game-databases --file /opt/pterodactyl-installer/game-databases/compose.json logs --tail 35 database'], check=False)
+                subprocess.run(
+                    [
+                        *ssh,
+                        (
+                            'docker compose --project-name ptero-game-databases --file '
+                            '/opt/pterodactyl-installer/game-databases/compose.json logs --tail 35 database'
+                        ),
+                    ],
+                    check=False,
+                )
                 subprocess.run([*ssh, 'journalctl -k --no-pager -n 100'], check=False)
                 raise RuntimeError('Real VM deployment failed')
         except Exception:

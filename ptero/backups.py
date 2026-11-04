@@ -1,5 +1,5 @@
 """Verified Panel archives and encrypted Panel/Wings configuration copies."""
-import hashlib
+
 import json
 from pathlib import Path, PurePosixPath
 import re
@@ -8,19 +8,10 @@ import shlex
 import shutil
 import tarfile
 import tempfile
-from .core import InstallerError, atomic_write, write_json
+from .common import InstallerError, atomic_write, file_sha256, write_json
 
 
-def checksum(path):
-    with Path(path).open('rb') as stream:
-        return hashlib.sha256(stream.read()).hexdigest() if Path(path).stat().st_size < 1024 * 1024 else digest(stream)
-
-
-def digest(stream):
-    h = hashlib.sha256()
-    for chunk in iter(lambda: stream.read(1024 * 1024), b''):
-        h.update(chunk)
-    return h.hexdigest()
+checksum = file_sha256
 
 
 def verified(path):
@@ -35,8 +26,7 @@ def verified(path):
 
 
 # Only these installer-owned Panel paths belong in an installation backup.
-PANEL_DATA = frozenset(('var', 'redis', 'nginx', 'certs', 'extensions', 'extension-assets',
-                        'mysql-client.cnf', 'mysql-plugins'))
+PANEL_DATA = frozenset(('var', 'redis', 'nginx', 'certs', 'extensions', 'extension-assets', 'mysql-client.cnf', 'mysql-plugins'))
 SCOPE = 'panel-wings-config'
 
 
@@ -47,10 +37,16 @@ def panel_archive(path):
             members = archive.getmembers()
             for member in members:
                 parts = PurePosixPath(member.name).parts
-                if (not parts or member.name.startswith('/') or '..' in parts
-                        or parts[0] not in ('manifest.json', 'state.json', 'database.sql', 'app', 'redis', 'data')
-                        or (parts[0] == 'data' and len(parts) > 1 and parts[1] not in PANEL_DATA)):
-                    raise InstallerError('Backups may contain only the Panel and Wings configuration; hosted-server content is not supported.')
+                if (
+                    not parts
+                    or member.name.startswith('/')
+                    or '..' in parts
+                    or parts[0] not in ('manifest.json', 'state.json', 'database.sql', 'app', 'redis', 'data')
+                    or (parts[0] == 'data' and len(parts) > 1 and parts[1] not in PANEL_DATA)
+                ):
+                    raise InstallerError(
+                        'Backups may contain only the Panel and Wings configuration; hosted-server content is not supported.'
+                    )
             manifests = [m for m in members if m.name == 'manifest.json']
             if len(manifests) != 1 or not manifests[0].isfile() or manifests[0].size > 16384:
                 raise InstallerError('This is not a valid Panel backup.')
@@ -68,19 +64,31 @@ def bundle_file(path):
     if '..' in parts:
         return False
     name = str(PurePosixPath(path)).lstrip('/')
-    return (name in ('bundle-manifest.json', 'wings-state.json', 'wings-config.yml',
-                     'wings-service.conf', 'wings-compose.json')
-            or bool(re.fullmatch(r'panel-[A-Za-z0-9_-]+\.tar\.gz(?:\.sha256)?', name)))
+    return name in ('bundle-manifest.json', 'wings-state.json', 'wings-config.yml', 'wings-service.conf', 'wings-compose.json') or bool(
+        re.fullmatch(r'panel-[A-Za-z0-9_-]+\.tar\.gz(?:\.sha256)?', name)
+    )
 
 
 def backup_plan(ui):
     ui.say('Backups include only the Panel and Wings configuration. Hosted-server files and databases are excluded.')
-    repository = ui.ask('Restic repository (local path, sftp: or s3:)', validator=lambda v: 1 <= len(v) <= 1024 and not any(ord(c) < 32 for c in v) and (v.startswith(('/', 's3:https://', 'sftp:'))))
+    repository = ui.ask(
+        'Restic repository (local path, sftp: or s3:)',
+        validator=lambda v: 1 <= len(v) <= 1024 and not any(ord(c) < 32 for c in v) and (v.startswith(('/', 's3:https://', 'sftp:'))),
+    )
     password = ui.ask('Backup encryption password (16+ characters)', secret=True, validator=lambda v: len(v) >= 16 and '\n' not in v)
     ui.ask('Confirm backup encryption password', secret=True, validator=lambda v: v == password)
-    profile = {'schema': 1, 'backup_scope_version': 2, 'owner': 'ptero-installer', 'scope': SCOPE, 'repository': repository, 'environment': {}, 'keep_daily': 7,
-               'keep_weekly': 4,
-               'backup_id': 'ptero-' + secrets.token_hex(8), 'calendar': ui.choice('Backup schedule', [('daily', 'Daily', ''), ('weekly', 'Weekly', ''), ('hourly', 'Hourly', '')])}
+    profile = {
+        'schema': 1,
+        'backup_scope_version': 2,
+        'owner': 'ptero-installer',
+        'scope': SCOPE,
+        'repository': repository,
+        'environment': {},
+        'keep_daily': 7,
+        'keep_weekly': 4,
+        'backup_id': 'ptero-' + secrets.token_hex(8),
+        'calendar': ui.choice('Backup schedule', [('daily', 'Daily', ''), ('weekly', 'Weekly', ''), ('hourly', 'Hourly', '')]),
+    }
     if repository.startswith('s3:'):
         profile['environment']['AWS_ACCESS_KEY_ID'] = ui.ask('S3 access key', secret=True)
         profile['environment']['AWS_SECRET_ACCESS_KEY'] = ui.ask('S3 secret key', secret=True)
@@ -124,9 +132,25 @@ class ScheduledBackups:
             candidate.unlink(missing_ok=True)
         write_json(self.profile, profile)
         runtime = self.sync_runtime()
-        command = shlex.join([str(self.p.root / 'usr/bin/python3'), str(runtime / 'installer.py'), '--language', self.ui.language, 'backup-run'])
-        atomic_write(self.p.root / 'etc/systemd/system/ptero-backup.service', '[Unit]\nDescription=Pterodactyl Installer encrypted backups\nAfter=network-online.target\n[Service]\nType=oneshot\nUMask=0077\nNice=10\nIOSchedulingClass=idle\n' + f'ExecStart={command}\n', 0o644)
-        atomic_write(self.p.root / 'etc/systemd/system/ptero-backup.timer', '[Unit]\nDescription=Pterodactyl Installer scheduled backups\n[Timer]\n' + f"OnCalendar={profile['calendar']}\nPersistent=true\nRandomizedDelaySec=300\n[Install]\nWantedBy=timers.target\n", 0o644)
+        command = shlex.join(
+            [str(self.p.root / 'usr/bin/python3'), str(runtime / 'installer.py'), '--language', self.ui.language, 'backup-run']
+        )
+        atomic_write(
+            self.p.root / 'etc/systemd/system/ptero-backup.service',
+            (
+                '[Unit]\nDescription=Pterodactyl Installer encrypted '
+                'backups\nAfter=network-online.target\n[Service]\nType=oneshot\nUMask=0077\nNice=10\nIOSchedulingClass=idle'
+                '\n'
+            )
+            + f'ExecStart={command}\n',
+            0o644,
+        )
+        atomic_write(
+            self.p.root / 'etc/systemd/system/ptero-backup.timer',
+            '[Unit]\nDescription=Pterodactyl Installer scheduled backups\n[Timer]\n'
+            + f"OnCalendar={profile['calendar']}\nPersistent=true\nRandomizedDelaySec=300\n[Install]\nWantedBy=timers.target\n",
+            0o644,
+        )
         self.run.run(['systemctl', 'daemon-reload'])
         self.run.run(['systemctl', 'enable', '--now', 'ptero-backup.timer'])
 
@@ -151,9 +175,11 @@ class ScheduledBackups:
                 try:
                     staged.replace(destination)
                 except BaseException:
-                    if previous.exists(): previous.replace(destination)
+                    if previous.exists():
+                        previous.replace(destination)
                     raise
-                if previous.exists(): shutil.rmtree(previous)
+                if previous.exists():
+                    shutil.rmtree(previous)
         atomic_write(runtime / 'installer.py', 'from ptero.cli import main\nraise SystemExit(main())\n')
         return runtime
 
@@ -167,7 +193,9 @@ class ScheduledBackups:
     def load_profile(self):
         profile = self.i.load(self.profile)
         if profile.get('games') or profile.get('include_games'):
-            self.ui.say('Legacy game backup options were removed. This profile now backs up only the Panel and Wings configuration.', 'warning')
+            self.ui.say(
+                'Legacy game backup options were removed. This profile now backs up only the Panel and Wings configuration.', 'warn'
+            )
         if profile.get('scope') != SCOPE or 'games' in profile or 'include_games' in profile:
             profile.pop('games', None)
             profile.pop('include_games', None)
@@ -188,11 +216,17 @@ class ScheduledBackups:
                 local_artifacts.extend(artifacts)
             if self.p.wings_state.exists():
                 source = self.i.backup_wings()
-                write_json(source / 'scheduled-backup.json', {'schema': 1, 'owner': 'ptero-installer',
-                           'scope': SCOPE, 'backup_id': profile['backup_id']})
+                write_json(
+                    source / 'scheduled-backup.json',
+                    {'schema': 1, 'owner': 'ptero-installer', 'scope': SCOPE, 'backup_id': profile['backup_id']},
+                )
                 local_artifacts.append(source)
-                for filename, target in (('wings.json', 'wings-state.json'), ('config.yml', 'wings-config.yml'),
-                                         ('wings.service', 'wings-service.conf'), ('wings-compose.json', 'wings-compose.json')):
+                for filename, target in (
+                    ('wings.json', 'wings-state.json'),
+                    ('config.yml', 'wings-config.yml'),
+                    ('wings.service', 'wings-service.conf'),
+                    ('wings-compose.json', 'wings-compose.json'),
+                ):
                     if (source / filename).is_file():
                         shutil.copy2(source / filename, bundle / target)
             if not artifacts and not any(bundle.iterdir()):
@@ -201,11 +235,34 @@ class ScheduledBackups:
                 panel_archive(verified(archive))
                 shutil.copy2(archive, bundle / archive.name)
                 shutil.copy2(str(archive) + '.sha256', bundle / (archive.name + '.sha256'))
-            write_json(bundle / 'bundle-manifest.json', {'schema': 1, 'backup_scope_version': 2, 'owner': 'ptero-installer', 'scope': SCOPE})
-            self.run.run(['restic', 'backup', '--tag', 'ptero-installer', '--tag', SCOPE, '--host', profile['backup_id'], '.'], env=env,
-                         label='Uploading encrypted backup bundle', timeout=14400, cwd=str(bundle))
+            write_json(
+                bundle / 'bundle-manifest.json', {'schema': 1, 'backup_scope_version': 2, 'owner': 'ptero-installer', 'scope': SCOPE}
+            )
+            self.run.run(
+                ['restic', 'backup', '--tag', 'ptero-installer', '--tag', SCOPE, '--host', profile['backup_id'], '.'],
+                env=env,
+                label='Uploading encrypted backup bundle',
+                timeout=14400,
+                cwd=str(bundle),
+            )
         # Retention only touches this installer's tagged snapshots.
-        self.run.run(['restic', 'forget', '--tag', 'ptero-installer,' + SCOPE, '--host', profile['backup_id'], '--keep-daily', str(profile['keep_daily']), '--keep-weekly', str(profile['keep_weekly']), '--prune'], env=env, timeout=14400)
+        self.run.run(
+            [
+                'restic',
+                'forget',
+                '--tag',
+                'ptero-installer,' + SCOPE,
+                '--host',
+                profile['backup_id'],
+                '--keep-daily',
+                str(profile['keep_daily']),
+                '--keep-weekly',
+                str(profile['keep_weekly']),
+                '--prune',
+            ],
+            env=env,
+            timeout=14400,
+        )
         self.run.run(['restic', 'check'], env=env, label='Checking encrypted backup repository', timeout=14400)
 
         history_path = self.p.base / 'backup-history.json'
@@ -214,13 +271,19 @@ class ScheduledBackups:
         while len(history['runs']) > profile.get('keep_local', 3):
             for value in history['runs'].pop(0):
                 path = Path(value)
-                if (re.fullmatch(r'panel-[A-Za-z0-9_-]+\.tar\.gz', path.name)
-                        and path.parent.resolve() == self.p.backups.resolve() and not path.is_symlink()):
+                if (
+                    re.fullmatch(r'panel-[A-Za-z0-9_-]+\.tar\.gz', path.name)
+                    and path.parent.resolve() == self.p.backups.resolve()
+                    and not path.is_symlink()
+                ):
                     path.unlink(missing_ok=True)
                     Path(str(path) + '.sha256').unlink(missing_ok=True)
-                elif (re.fullmatch(r'wings-[A-Za-z0-9_-]+', path.name)
-                      and path.parent.resolve() == self.p.backups.resolve() and not path.is_symlink()
-                      and path.is_dir()):
+                elif (
+                    re.fullmatch(r'wings-[A-Za-z0-9_-]+', path.name)
+                    and path.parent.resolve() == self.p.backups.resolve()
+                    and not path.is_symlink()
+                    and path.is_dir()
+                ):
                     # A manual Wings copy has no scheduler ownership marker.
                     # Never recursively remove arbitrary or historical contents.
                     allowed = {'wings.json', 'config.yml', 'wings.service', 'wings-compose.json', 'scheduled-backup.json'}

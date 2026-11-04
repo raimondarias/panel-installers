@@ -1,4 +1,5 @@
 """Full-screen ncurses interface. All ncurses access is serialized by one lock."""
+
 import contextlib
 import curses
 import os
@@ -7,7 +8,7 @@ import threading
 import time
 
 from . import __version__
-from .navigation import GROUPS, Item
+from .navigation import GROUPS, Item, attention, status_label
 from .terminal_text import cell_width, clip, wrap
 
 
@@ -34,7 +35,8 @@ class Terminal:
         with contextlib.suppress(curses.error):
             self.previous_mouse_interval = curses.mouseinterval(150)
             _, self.previous_mouse_mask = curses.mousemask(
-                curses.BUTTON1_CLICKED | curses.BUTTON4_PRESSED | getattr(curses, "BUTTON5_PRESSED", 0))
+                curses.BUTTON1_CLICKED | curses.BUTTON4_PRESSED | getattr(curses, "BUTTON5_PRESSED", 0)
+            )
         if hasattr(curses, "set_escdelay"):
             curses.set_escdelay(100)
         with contextlib.suppress(curses.error):
@@ -43,10 +45,19 @@ class Terminal:
             curses.start_color()
             with contextlib.suppress(curses.error):
                 curses.use_default_colors()
-            palette = ((117, 234), (252, 234), (245, 234), (16, 80), (114, 234), (221, 234), (203, 234)) if curses.COLORS >= 256 else (
-                (curses.COLOR_CYAN, -1), (curses.COLOR_WHITE, -1), (curses.COLOR_WHITE, -1),
-                (curses.COLOR_BLACK, curses.COLOR_CYAN), (curses.COLOR_GREEN, -1),
-                (curses.COLOR_YELLOW, -1), (curses.COLOR_RED, -1))
+            palette = (
+                ((117, 234), (252, 234), (245, 234), (16, 80), (114, 234), (221, 234), (203, 234))
+                if curses.COLORS >= 256
+                else (
+                    (curses.COLOR_CYAN, -1),
+                    (curses.COLOR_WHITE, -1),
+                    (curses.COLOR_WHITE, -1),
+                    (curses.COLOR_BLACK, curses.COLOR_CYAN),
+                    (curses.COLOR_GREEN, -1),
+                    (curses.COLOR_YELLOW, -1),
+                    (curses.COLOR_RED, -1),
+                )
+            )
             for number, (name, pair) in enumerate(zip(("accent", "text", "muted", "selected", "ok", "warn", "error"), palette), 1):
                 curses.init_pair(number, *pair)
                 self.colors[name] = curses.color_pair(number)
@@ -61,8 +72,7 @@ class Terminal:
                 if self.previous_mouse_interval is not None:
                     with contextlib.suppress(curses.error):
                         curses.mouseinterval(self.previous_mouse_interval)
-                for restore in (lambda: self.window.keypad(False), curses.nocbreak, curses.echo,
-                                lambda: curses.curs_set(1), curses.endwin):
+                for restore in (lambda: self.window.keypad(False), curses.nocbreak, curses.echo, lambda: curses.curs_set(1), curses.endwin):
                     with contextlib.suppress(curses.error):
                         restore()
                 self.window = None
@@ -112,13 +122,20 @@ class Terminal:
             return
         self.put(1, self.left + 2, "PTERODACTYL", "accent", bold=True)
         self.put(1, self.left + 15, "/ " + self.tr("Installer") + "  " + __version__, "text")
-        self.put(1, self.left + self.width - 25, self.ui.language + "  ·  " + ("●" if not self.ui.animate else "◉●◉○"[int(time.monotonic() * 3) % 4]), "accent")
+        self.put(
+            1,
+            self.left + self.width - 25,
+            self.ui.language + "  ·  " + ("●" if not self.ui.animate else "◉●◉○"[int(time.monotonic() * 3) % 4]),
+            "accent",
+        )
         heading = (self.tr("PREVIEW") + " · " if getattr(self.ui, "preview", False) else "") + self.tr(title)
         self.put(2, self.left + 2, heading, "text", self.width - 4, True)
         self.put(3, self.left + 2, "─" * (self.width - 4), "muted")
         if self.wizard:
             number, total, name = self.wizard
-            self.put(4, self.left + 2, self.tr("Step {number} of {total}").format(number=number, total=total) + " · " + self.tr(name), "accent")
+            self.put(
+                4, self.left + 2, self.tr("Step {number} of {total}").format(number=number, total=total) + " · " + self.tr(name), "accent"
+            )
             bars = max(8, self.width - 6)
             filled = round(number * bars / total)
             self.put(5, self.left + 2, "━" * filled + "─" * (bars - filled), "accent")
@@ -126,11 +143,29 @@ class Terminal:
             size = (self.width - 6) // 3
             for index, (key, label) in enumerate((("panel", "Panel"), ("wings", "Wings"), ("database", "Game SQL"))):
                 state = self.dashboard[key]
-                status = {"absent": "Not installed", "ready": "Configured", "stopped": "Stopped", "pending": "Not linked"}.get(state, "Needs attention")
-                if key == "database" and state == "absent":
-                    status = "Not configured"
-                self.put(4, self.left + 2 + index * size, self.tr(label) + " · " + self.tr(status), "ok" if state == "ready" else "muted" if state == "absent" else "warn", size - 1)
-            self.put(5, self.left + 2, self.dashboard.get("url") or self.tr("New machine? Start with Install Panel and Wings."), "muted", self.width - 4)
+                text = (
+                    ("● " if state == "ready" else "○ " if state == "absent" else "▲ ")
+                    + self.tr(label)
+                    + " · "
+                    + self.tr(status_label(key, self.dashboard))
+                )
+                version = self.dashboard.get(key + "_version")
+                if version and state != "absent" and cell_width(text + " · " + version) <= size - 1:
+                    text += " · " + version
+                self.put(
+                    4, self.left + 2 + index * size, text, "ok" if state == "ready" else "muted" if state == "absent" else "warn", size - 1
+                )
+            hint = attention(self.dashboard)
+            if hint:
+                self.put(5, self.left + 2, self.tr(hint), "warn", self.width - 4)
+            else:
+                self.put(
+                    5,
+                    self.left + 2,
+                    self.dashboard.get("url") or self.tr("New machine? Start with Install Panel and Wings."),
+                    "muted",
+                    self.width - 4,
+                )
         else:
             self.put(4, self.left + 2, subtitle or self.tr("A guided setup for your Panel and game nodes."), "muted", self.width - 4)
             self.put(5, self.left + 2, platform.node(), "muted", self.width - 4)
@@ -139,7 +174,13 @@ class Terminal:
     def footer(self, text):
         translated = self.tr(text)
         if cell_width(translated) > self.width - 4:
-            translated = self.tr("↑↓ · Click · Enter · Esc") if "Click" in text else "↑↓ · Tab · Enter · / · Esc" if "Groups" in text else "Enter · Esc"
+            translated = (
+                self.tr("↑↓ · Click · Enter · Esc")
+                if "Click" in text
+                else "↑↓ · Tab · Enter · / · Esc"
+                if "Groups" in text
+                else "Enter · Esc"
+            )
         self.put(self.height - 2, self.left + 2, translated, "muted", self.width - 4)
 
     def refresh(self):
@@ -173,13 +214,18 @@ class Terminal:
 
     def select(self, title, items, default=0, grouped=False):
         from .core import Cancelled
+
         category = items[default].group if grouped else ""
         selection, scroll, digits, query, warning = default, 0, "", "", ""
         if grouped and hasattr(self, "navigation"):
             category, selection = self.navigation
         while True:
-            visible = [item for item in items if ((not grouped or item.group == category) and not query) or
-                       (query and query.casefold() in (self.tr(item.label) + " " + self.tr(item.note)).casefold())]
+            visible = [
+                item
+                for item in items
+                if ((not grouped or item.group == category) and not query)
+                or (query and query.casefold() in (self.tr(item.label) + " " + self.tr(item.note)).casefold())
+            ]
             if not visible:
                 visible = [Item(None, "No matching actions", enabled=False)]
             selection = max(0, min(selection, len(visible) - 1))
@@ -193,7 +239,14 @@ class Terminal:
                     if grouped:
                         if sidebar:
                             for index, name in enumerate(GROUPS):
-                                self.put(8 + index * 2, self.left + 2, self.tr(name), "accent" if name == category and not query else "muted", 22, name == category)
+                                self.put(
+                                    8 + index * 2,
+                                    self.left + 2,
+                                    self.tr(name),
+                                    "accent" if name == category and not query else "muted",
+                                    22,
+                                    name == category,
+                                )
                             for row in range(7, self.height - 3):
                                 self.put(row, self.left + 25, "│", "muted")
                         else:
@@ -203,7 +256,7 @@ class Terminal:
                     scroll = max(0, min(scroll, selection))
                     if selection >= scroll + capacity:
                         scroll = selection - capacity + 1
-                    for offset, item in enumerate(visible[scroll:scroll + capacity]):
+                    for offset, item in enumerate(visible[scroll : scroll + capacity]):
                         index = scroll + offset
                         prefix = "› " if index == selection else "  "
                         prefix += (item.shortcut + "  ") if item.shortcut else ""
@@ -215,8 +268,22 @@ class Terminal:
                         style = "selected" if index == selection else "text" if item.enabled else "muted"
                         self.put(top + offset, x, text + " " * max(0, width - cell_width(text)), style, width)
                     chosen = visible[selection]
-                    self.put(self.height - 7, x, self.tr("Before you continue") if chosen.reason else self.tr("Next step"), "warn" if chosen.reason else "accent", width, True)
-                    self.paragraph(self.height - 6, x, self.tr(warning or chosen.reason or chosen.note), width, 2, "warn" if warning or chosen.reason else "muted")
+                    self.put(
+                        self.height - 7,
+                        x,
+                        self.tr("Before you continue") if chosen.reason else self.tr("Next step"),
+                        "warn" if chosen.reason else "accent",
+                        width,
+                        True,
+                    )
+                    self.paragraph(
+                        self.height - 6,
+                        x,
+                        self.tr(warning or chosen.reason or chosen.note),
+                        width,
+                        2,
+                        "warn" if warning or chosen.reason else "muted",
+                    )
                     if query or digits:
                         self.put(6, x, (self.tr("Search") + ": " + query) if query else self.tr("Option") + ": " + digits, "accent", width)
                     self.footer("↑↓ / Click Choose · Tab Groups · / Search · Esc Back" if grouped else "↑↓ / Click Choose · Esc Back")
@@ -302,6 +369,7 @@ class Terminal:
 
     def prompt(self, label, default=None, secret=False, initial=None, error=""):
         from .core import Cancelled
+
         value = initial if initial is not None else ""
         cursor = len(value)
         try:
@@ -324,7 +392,13 @@ class Terminal:
                             visible = visible[1:]
                         self.put(13, x, " " * width, "selected", width)
                         self.put(13, x, visible or ("" if secret else self.tr("Type here")), "selected", width)
-                        self.put(min(15, self.height - 4), x, self.tr(error or ("Your input is hidden." if secret else "Your choices are reviewed before installation.")), "warn" if error else "muted", width)
+                        self.put(
+                            min(15, self.height - 4),
+                            x,
+                            self.tr(error or ("Your input is hidden." if secret else "Your choices are reviewed before installation.")),
+                            "warn" if error else "muted",
+                            width,
+                        )
                         with contextlib.suppress(curses.error):
                             curses.curs_set(1)
                             self.window.move(13, min(x + cell_width(before) - removed, x + width - 1))
@@ -340,9 +414,9 @@ class Terminal:
                 if key in ("\n", "\r", curses.KEY_ENTER):
                     return value if value or default is None else str(default)
                 if key in (curses.KEY_BACKSPACE, "\x7f", "\b") and cursor:
-                    value, cursor = value[:cursor - 1] + value[cursor:], cursor - 1
+                    value, cursor = value[: cursor - 1] + value[cursor:], cursor - 1
                 elif key == curses.KEY_DC:
-                    value = value[:cursor] + value[cursor + 1:]
+                    value = value[:cursor] + value[cursor + 1 :]
                 elif key == curses.KEY_LEFT:
                     cursor = max(0, cursor - 1)
                 elif key == curses.KEY_RIGHT:
@@ -361,6 +435,7 @@ class Terminal:
 
     def result(self, title="Operation complete", rows=None, can_cancel=False):
         from .core import Cancelled
+
         offset = 0
         while True:
             with self.lock:
@@ -371,7 +446,7 @@ class Terminal:
                     lines = [(line, style) for text, style in entries for line in wrap(text, width)]
                     capacity = max(1, self.height - 11)
                     offset = max(0, min(offset, max(0, len(lines) - capacity)))
-                    for row, (line, style) in enumerate(lines[offset:offset + capacity], 8):
+                    for row, (line, style) in enumerate(lines[offset : offset + capacity], 8):
                         self.put(row, self.left + 3, line, style, width)
                     self.footer("↑↓ Scroll · Enter / Esc Back")
                 self.refresh()
@@ -389,7 +464,7 @@ class Terminal:
             elif key == curses.KEY_PPAGE:
                 offset -= 8
             elif key == curses.KEY_END:
-                offset = 10 ** 9
+                offset = 10**9
             elif key == curses.KEY_HOME:
                 offset = 0
 
@@ -397,6 +472,7 @@ class Terminal:
     def busy(self, label):
         stop = threading.Event()
         started = time.monotonic()
+
         def render():
             while not stop.is_set():
                 with self.lock:
@@ -411,6 +487,7 @@ class Terminal:
                         self.footer("Please wait. Ctrl+C interrupts the current operation.")
                     self.refresh()
                 stop.wait(0.12 if self.ui.animate else 0.5)
+
         thread = threading.Thread(target=render, daemon=True)
         thread.start()
         try:

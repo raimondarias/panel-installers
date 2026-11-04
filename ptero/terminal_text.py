@@ -1,15 +1,14 @@
 """Cell-aware terminal text helpers, without third-party dependencies."""
+
 import unicodedata
 
 
 def clean(text):
-    return "".join(character for character in str(text)
-                   if character == "\n" or not unicodedata.category(character).startswith("C"))
+    return "".join(character for character in str(text) if character == "\n" or not unicodedata.category(character).startswith("C"))
 
 
 def cell_width(text):
-    return sum(0 if unicodedata.combining(c) else 2 if unicodedata.east_asian_width(c) in ("W", "F") else 1
-               for c in clean(text))
+    return sum(0 if unicodedata.combining(c) else 2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in clean(text))
 
 
 def clip(text, width):
@@ -38,7 +37,7 @@ def wrap(text, width):
                 space = line.rfind(" ")
                 if space > 0:
                     result.append(line[:space])
-                    line = line[space + 1:]
+                    line = line[space + 1 :]
                     used = cell_width(line)
                 else:
                     result.append(line)

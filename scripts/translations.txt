@@ -599,3 +599,223 @@ The snapshot contains no supported Panel or Wings configuration files.|||La copi
 Needs attention: {component} — {detail}|||Requiere atención: {component} — {detail}|||Precisa de atenção: {component} — {detail}
 No managed Panel installation is available to remove.|||No hay una instalación gestionada del Panel que desinstalar.|||Não há uma instalação gerenciada do Painel para desinstalar.
 No managed Wings installation is available to remove.|||No hay una instalación gestionada de Wings que desinstalar.|||Não há uma instalação gerenciada do Wings para desinstalar.
+# 1.3.0: guided Panel update rollback and dashboard status
+No Panel update can be rolled back. A recovery point is saved automatically each time you update the Panel.|||No hay ninguna actualización del Panel que revertir. Cada vez que actualizas el Panel se guarda automáticamente un punto de recuperación.|||Não há atualização do Painel para reverter. Um ponto de recuperação é salvo automaticamente sempre que você atualiza o Painel.
+The recovery backup is no longer available: {path}|||La copia de recuperación ya no está disponible: {path}|||O backup de recuperação não está mais disponível: {path}
+The recovery backup does not contain a readable Panel state.|||La copia de recuperación no contiene un estado del Panel legible.|||O backup de recuperação não contém um estado do Painel legível.
+The recovery backup does not record a valid Panel version.|||La copia de recuperación no registra una versión válida del Panel.|||O backup de recuperação não registra uma versão válida do Painel.
+The recovery backup is not older than the installed Panel; there is nothing to roll back.|||La copia de recuperación no es anterior al Panel instalado; no hay nada que revertir.|||O backup de recuperação não é anterior ao Painel instalado; não há nada para reverter.
+The recovery backup was made for a different deployment method or database engine.|||La copia de recuperación se creó con otro método de instalación u otro motor de base de datos.|||O backup de recuperação foi criado com outro método de instalação ou outro mecanismo de banco de dados.
+The recovery backup belongs to a different Panel database.|||La copia de recuperación pertenece a otra base de datos del Panel.|||O backup de recuperação pertence a outro banco de dados do Painel.
+Installed: {value}|||Instalada: {value}|||Instalada: {value}
+Roll back to: {value}|||Revertir a: {value}|||Reverter para: {value}
+Recovery backup: {value}|||Copia de recuperación: {value}|||Backup de recuperação: {value}
+The Panel stayed stopped after the backup, so no Panel data is lost.|||El Panel permaneció detenido tras la copia, así que no se pierde ningún dato del Panel.|||O Painel permaneceu parado após o backup, então nenhum dado do Painel é perdido.
+Panel changes made after this backup will be lost.|||Se perderán los cambios hechos en el Panel después de esta copia.|||As alterações feitas no Painel após este backup serão perdidas.
+A safety copy of the current Panel is created first.|||Primero se crea una copia de seguridad del Panel actual.|||Primeiro é criado um backup de segurança do Painel atual.
+Application keys, credentials, certificates and current settings are kept.|||Se conservan las claves de la aplicación, las credenciales, los certificados y los ajustes actuales.|||As chaves da aplicação, as credenciais, os certificados e as configurações atuais são mantidos.
+Panel rollback plan|||Plan para revertir el Panel|||Plano de reversão do Painel
+ROLL BACK PANEL|||REVERTIR PANEL|||REVERTER PAINEL
+The safety copy failed. Continue the rollback without it?|||La copia de seguridad falló. ¿Continuar la reversión sin ella?|||O backup de segurança falhou. Continuar a reversão sem ele?
+Panel rolled back|||Panel revertido|||Painel revertido
+Running version: {value}|||Versión en ejecución: {value}|||Versão em execução: {value}
+Safety copy of {version}: {path}|||Copia de seguridad de {version}: {path}|||Backup de segurança da {version}: {path}
+Update again when a fixed release is available.|||Vuelve a actualizar cuando haya una versión corregida.|||Atualize novamente quando houver uma versão corrigida.
+Panel rollback complete.|||Reversión del Panel completada.|||Reversão do Painel concluída.
+The recovery backup does not contain the Panel database.|||La copia de recuperación no contiene la base de datos del Panel.|||O backup de recuperação não contém o banco de dados do Painel.
+The recovery backup has different application keys; use Restore Panel from backup instead.|||La copia de recuperación tiene otras claves de aplicación; usa «Restaurar Panel desde una copia».|||O backup de recuperação tem outras chaves da aplicação; use «Restaurar o Painel de um backup».
+Stopping the Panel for the rollback|||Deteniendo el Panel para revertirlo|||Parando o Painel para a reversão
+Clearing the updated database schema|||Eliminando el esquema actualizado de la base de datos|||Removendo o esquema atualizado do banco de dados
+Restoring the pre-update database|||Restaurando la base de datos anterior a la actualización|||Restaurando o banco de dados anterior à atualização
+Downloading the previous Panel image|||Descargando la imagen anterior del Panel|||Baixando a imagem anterior do Painel
+Starting the previous Panel version|||Iniciando la versión anterior del Panel|||Iniciando a versão anterior do Painel
+Panel update plan|||Plan de actualización del Panel|||Plano de atualização do Painel
+Update: {current} → {target}|||Actualización: {current} → {target}|||Atualização: {current} → {target}
+A verified backup is created before any code or database change.|||Se crea una copia verificada antes de cambiar el código o la base de datos.|||Um backup verificado é criado antes de qualquer alteração no código ou no banco de dados.
+The Panel is unavailable while the new migrations run.|||El Panel no estará disponible mientras se aplican las nuevas migraciones.|||O Painel fica indisponível enquanto as novas migrações são executadas.
+If anything fails, you can roll back to {version}.|||Si algo falla, podrás volver a {version}.|||Se algo falhar, você poderá voltar para a {version}.
+If something looks wrong, choose Roll back Panel update to return to {version}.|||Si algo no funciona bien, elige «Revertir actualización del Panel» para volver a {version}.|||Se algo não estiver certo, escolha «Reverter atualização do Painel» para voltar para a {version}.
+Roll back to {version} now?|||¿Revertir ahora a {version}?|||Reverter agora para a {version}?
+The Panel stays stopped. Choose Resume installation to retry, or Roll back Panel update.|||El Panel sigue detenido. Elige «Reanudar instalación» para reintentar o «Revertir actualización del Panel».|||O Painel continua parado. Escolha «Retomar instalação» para tentar novamente ou «Reverter atualização do Painel».
+The update failed and the Panel was rolled back to {version}.|||La actualización falló y el Panel se revirtió a {version}.|||A atualização falhou e o Painel foi revertido para a {version}.
+the previous version|||la versión anterior|||a versão anterior
+The last Panel update did not finish|||La última actualización del Panel no terminó|||A última atualização do Painel não foi concluída
+Continue the update to {version}|||Continuar la actualización a {version}|||Continuar a atualização para a {version}
+Run the remaining update phases again|||Volver a ejecutar las fases pendientes de la actualización|||Executar novamente as fases pendentes da atualização
+Roll back to {version}|||Revertir a {version}|||Reverter para a {version}
+Restore the verified pre-update backup and previous release|||Restaurar la copia verificada previa y la versión anterior|||Restaurar o backup verificado anterior e a versão anterior
+Roll back Panel update|||Revertir actualización del Panel|||Reverter atualização do Painel
+Return to the Panel version before the last update, using its verified backup.|||Vuelve a la versión del Panel anterior a la última actualización usando su copia verificada.|||Volte à versão do Painel anterior à última atualização usando o backup verificado.
+No managed Panel is installed, so there is no update to roll back.|||No hay un Panel gestionado instalado, así que no hay ninguna actualización que revertir.|||Não há um Painel gerenciado instalado, então não há atualização para reverter.
+Linked, not started|||Vinculado, sin iniciar|||Vinculado, não iniciado
+Installation incomplete|||Instalación incompleta|||Instalação incompleta
+Update incomplete|||Actualización incompleta|||Atualização incompleta
+Restore incomplete|||Restauración incompleta|||Restauração incompleta
+Needs review|||Requiere revisión|||Precisa de revisão
+Panel update incomplete. Choose Resume installation (32) to continue or roll back.|||Actualización del Panel incompleta. Elige Reanudar instalación (32) para continuar o revertir.|||Atualização do Painel incompleta. Escolha Retomar instalação (32) para continuar ou reverter.
+An operation was interrupted. Choose Resume installation (32) to continue.|||Una operación se interrumpió. Elige Reanudar instalación (32) para continuar.|||Uma operação foi interrompida. Escolha Retomar instalação (32) para continuar.
+A component needs manual review. Choose Status and diagnostics (14).|||Un componente requiere revisión manual. Elige Estado y diagnóstico (14).|||Um componente precisa de revisão manual. Escolha Status e diagnóstico (14).
+Duration: {value}|||Duración: {value}|||Duração: {value}
+# Former Spanish-source messages, now keyed by their English text
+The API redirected the request. Enter the Panel's final URL.|||La API redirige la petición. Introduce la URL final del Panel.|||A API redirecionou a solicitação. Informe a URL final do Painel.
+Refusing to write through a symbolic link: {value1}|||No se escribe sobre un enlace simbólico: {value1}|||Não é possível gravar por um link simbólico: {value1}
+Starting Docker|||Iniciando Docker|||Iniciando o Docker
+Checking Docker|||Verificando Docker|||Verificando o Docker
+{value1} version (auto finds the latest compatible release)|||Versión de {value1} (auto busca la más reciente compatible)|||Versão de {value1} (auto busca a versão compatível mais recente)
+Selected release: {value1}|||Versión elegida: {value1}|||Versão selecionada: {value1}
+Preparing the database and Redis|||Preparando base de datos y Redis|||Preparando o banco de dados e o Redis
+Keeping the Panel offline during migrations|||Manteniendo el Panel detenido durante las migraciones|||Mantendo o Painel offline durante as migrações
+Running migrations and installing official eggs|||Migraciones y eggs oficiales|||Executando migrações e instalando os eggs oficiais
+Starting the Panel, queue worker and scheduler|||Iniciando Panel, colas y scheduler|||Iniciando o Painel, a fila e o agendador
+Panel is available: {value1}|||Panel disponible: {value1}|||Painel disponível: {value1}
+Keep an off-server copy of data/var/.env (APP_KEY and HASHIDS_SALT).|||Guarda fuera del servidor una copia de data/var/.env (APP_KEY y HASHIDS_SALT).|||Guarde fora do servidor uma cópia de data/var/.env (APP_KEY e HASHIDS_SALT).
+INSTALL WINGS|||INSTALAR WINGS|||INSTALAR WINGS
+Wings binary installed and verified. Link the node to continue.|||Binario Wings instalado y verificado. Falta vincular el nodo.|||Binário do Wings instalado e verificado. Vincule o node para continuar.
+Link Wings to the Panel now?|||¿Vincular Wings al Panel ahora?|||Vincular o Wings ao Painel agora?
+In the Panel: Admin → Locations → create a location; Nodes → create a node → Configuration.|||En el Panel: Admin → Locations → crea ubicación; Nodes → crea nodo → Configuration.|||No Painel: Admin → Locations → crie uma localização; Nodes → crie um node → Configuration.
+Set the domain, API/SFTP ports, memory, disk and allocations using the node's IP.|||Configura dominio, puertos API/SFTP, memoria, disco y allocations con la IP del nodo.|||Defina domínio, portas da API/SFTP, memória, disco e allocations com o IP do node.
+Use the Auto-Deploy token. Your input will be hidden.|||El token solicitado es el de Auto-Deploy; se introducirá oculto.|||Use o token Auto-Deploy. A digitação ficará oculta.
+Numeric node ID|||ID numérico del nodo|||ID numérico do node
+Auto-Deploy token|||Token Auto-Deploy|||Token Auto-Deploy
+CONFIGURE WINGS|||CONFIGURAR WINGS|||CONFIGURAR WINGS
+If the Panel uses HTTPS, enable SSL on the node and issue its certificate before starting.|||Si el Panel usa HTTPS, activa SSL en el nodo y emite su certificado antes de iniciar.|||Se o Painel usa HTTPS, ative SSL no node e emita o certificado antes de iniciar.
+Issue an HTTPS certificate for Wings now?|||¿Emitir certificado SSL para Wings ahora?|||Emitir um certificado HTTPS para o Wings agora?
+Enabling Wings|||Activando Wings|||Ativando o Wings
+Starting Wings with its current configuration|||Iniciando Wings con la configuración actual|||Iniciando o Wings com a configuração atual
+Wings is active. Check that the node is connected in the Panel.|||Wings está activo. Comprueba que el nodo aparece conectado en el Panel.|||Wings ativo. Verifique se o node está conectado no Painel.
+Wings domain, e.g. node.example.com|||Dominio de Wings, ej. node.ejemplo.com|||Domínio do Wings, ex.: node.exemplo.com
+Enable SSL in the node's Configuration and use these paths:|||En Configuration del nodo activa SSL y usa estas rutas:|||Ative SSL na Configuration do node e use estes caminhos:
+The domain must point here and allow HTTP challenges on port 80.|||El dominio debe apuntar a este host y permitir desafíos HTTP en el puerto 80.|||O domínio deve apontar para este host e permitir desafios HTTP na porta 80.
+Updating APT|||Actualizando APT|||Atualizando o APT
+Installing Certbot|||Instalando Certbot|||Instalando o Certbot
+Certificate issued. Synchronize Wings again if you changed SSL in the Panel.|||Certificado emitido. Vuelve a sincronizar la configuración si cambiaste SSL en el Panel.|||Certificado emitido. Sincronize o Wings novamente se alterou o SSL no Painel.
+Wings configuration saved: {value1}|||Configuración de Wings guardada: {value1}|||Configuração do Wings salva: {value1}
+RESTORE PANEL|||RESTAURAR PANEL|||RESTAURAR PAINEL
+Panel restored. Keep the original domain/IP or update DNS and configuration.|||Panel restaurado. Mantén el dominio/IP original o adapta DNS y configuración.|||Painel restaurado. Mantenha o domínio/IP original ou atualize o DNS e a configuração.
+UPDATE PANEL|||ACTUALIZAR PANEL|||ATUALIZAR PAINEL
+Stopping the Panel for its update|||Deteniendo Panel para actualizar|||Parando o Painel para atualizar
+Panel updated and checked with the official healthcheck.|||Panel actualizado y comprobado por el healthcheck oficial.|||Painel atualizado e verificado pelo healthcheck oficial.
+Wings updated. Game containers are preserved.|||Wings actualizado; los contenedores de juegos se conservan.|||Wings atualizado. Os contêineres dos jogos foram preservados.
+Also delete the Panel database and files? A backup is created first.|||¿Borrar también base de datos y archivos del Panel? (antes se crea backup)|||Excluir também o banco e os arquivos do Painel? Um backup será criado antes.
+Removing only this Panel's containers and network|||Eliminando solo contenedores y red de este Panel|||Removendo apenas os contêineres e a rede deste Painel
+Panel uninstalled. Backup: {value1}|||Panel desinstalado. Backup: {value1}|||Painel desinstalado. Backup: {value1}
+Game files and containers will remain. Stop them from the Panel if needed.|||Los juegos y sus contenedores seguirán existiendo. Apágalos desde el Panel si lo necesitas.|||Os arquivos e contêineres dos jogos serão mantidos. Desligue-os pelo Painel se necessário.
+Stopping and disabling Wings|||Deteniendo y deshabilitando Wings|||Parando e desativando o Wings
+Wings removed. Game files, Docker and certificates are preserved.|||Wings desinstalado. Archivos de juegos, Docker y certificados conservados.|||Wings removido. Arquivos dos jogos, Docker e certificados foram preservados.
+UNINSTALL PANEL AND WINGS|||DESINSTALAR PANEL Y WINGS|||DESINSTALAR PAINEL E WINGS
+Private log: {value1}|||Log privado: {value1}|||Log privado: {value1}
+RESTART SERVICES|||REINICIAR SERVICIOS|||REINICIAR SERVIÇOS
+CHANGE SMTP|||CAMBIAR SMTP|||ALTERAR SMTP
+Applying SMTP settings|||Aplicando SMTP|||Aplicando as configurações SMTP
+Allow these ports in your provider and host firewalls:|||Permite en el firewall del proveedor y del host:|||Libere estas portas nos firewalls do provedor e do host:
+Panel: TCP 80/443. Wings: TCP 8080 (or your node's API port) and TCP 2022 for SFTP.|||Panel: TCP 80/443. Wings: TCP 8080 (o el puerto del nodo) y TCP 2022 para SFTP.|||Painel: TCP 80/443. Wings: TCP 8080 (ou a porta da API do node) e TCP 2022 para SFTP.
+Games: their TCP/UDP allocations. Keep your SSH administration port open.|||Juegos: sus allocations TCP/UDP. SSH: conserva tu puerto de administración.|||Jogos: suas allocations TCP/UDP. Mantenha a porta de administração SSH aberta.
+Docker publishes ports using its own rules; restrict them with DOCKER-USER/nftables.|||Docker publica puertos mediante sus propias reglas; usa DOCKER-USER/nftables para restringirlos.|||O Docker publica portas com regras próprias; restrinja-as com DOCKER-USER/nftables.
+Firewalls and their rules are not changed automatically.|||No se activan firewalls ni se cambian reglas automáticamente.|||Os firewalls e suas regras não são alterados automaticamente.
+The API did not return a valid node configuration.|||La API no devolvió una configuración de nodo válida.|||A API não retornou uma configuração válida do node.
+This installation or backup does not belong to this installer.|||La instalación o copia no pertenece a este instalador.|||Esta instalação ou backup não pertence a este instalador.
+Supported systems: Ubuntu 22.04/24.04/26.04 and Debian 12/13.|||Sistemas admitidos: Ubuntu 22.04/24.04/26.04 y Debian 12/13.|||Sistemas compatíveis: Ubuntu 22.04/24.04/26.04 e Debian 12/13.
+Supported architecture: amd64 or arm64.|||Arquitectura admitida: amd64 o arm64.|||Arquitetura compatível: amd64 ou arm64.
+A server/VPS running systemd is required.|||Se necesita un VPS/servidor con systemd como sistema de inicio.|||É necessário um servidor/VPS com systemd.
+At least 4 GiB of free space is required for images and installation.|||Se necesitan al menos 4 GiB libres para las imágenes y la instalación.|||São necessários pelo menos 4 GiB livres para imagens e instalação.
+Docker Engine/Compose will be installed from Docker's official repository.|||Se instalará Docker Engine/Compose desde el repositorio oficial de Docker.|||O Docker Engine/Compose será instalado pelo repositório oficial do Docker.
+Docker prerequisites|||Dependencias de Docker|||Pré-requisitos do Docker
+Checking the Docker repository|||Consultando repositorio Docker|||Consultando o repositório do Docker
+Installing Docker and Compose|||Instalando Docker y Compose|||Instalando o Docker e o Compose
+GitHub did not return a compatible release.|||GitHub no devolvió una release compatible.|||O GitHub não retornou uma versão compatível.
+The downloaded image does not have a verifiable digest.|||La imagen descargada no tiene un digest verificable.|||A imagem baixada não tem um digest verificável.
+RESUME PANEL|||REANUDAR PANEL|||RETOMAR PAINEL
+GitHub does not publish a SHA-256 for this binary. Download cancelled.|||GitHub no publica un SHA-256 para este binario; se cancela la descarga.|||O GitHub não publica um SHA-256 para este binário. Download cancelado.
+The Wings download does not match the official repository.|||La descarga de Wings no corresponde al repositorio oficial.|||O download do Wings não corresponde ao repositório oficial.
+Checking the Wings executable|||Comprobando ejecutable Wings|||Verificando o executável do Wings
+Interrupted Wings installation: repairing its recorded version.|||Instalación de Wings interrumpida: se reparará la versión registrada.|||Instalação do Wings interrompida: reparando a versão registrada.
+Wings remains stopped until you complete Configure Wings.|||Wings queda detenido hasta completar «Configurar Wings».|||O Wings ficará parado até concluir Configurar Wings.
+A fresh configuration will be generated. Reapply manual host settings from the backup if needed.|||Se genera una configuración nueva. Reaplica tus ajustes manuales desde la copia si los necesitas.|||Uma nova configuração será gerada. Reaplique os ajustes manuais do host pelo backup se necessário.
+Checking initial Wings stability|||Comprobando estabilidad inicial de Wings|||Verificando a estabilidade inicial do Wings
+The Panel will pause briefly during certificate issuance/renewal to release port 80.|||El Panel se pausará brevemente al emitir/renovar este certificado para liberar el puerto 80.|||O Painel será pausado brevemente ao emitir/renovar o certificado para liberar a porta 80.
+Issuing the Wings certificate|||Emitiendo certificado Wings|||Emitindo o certificado do Wings
+Backup created: {value1} (contains secrets; keep an off-server copy)|||Backup creado: {value1} (contiene secretos; guárdalo fuera del servidor)|||Backup criado: {value1} (contém segredos; guarde uma cópia fora do servidor)
+Absolute path to the .tar.gz backup|||Ruta absoluta al backup .tar.gz|||Caminho absoluto do backup .tar.gz
+The backup's .sha256 file is missing.|||Falta el archivo .sha256 del backup.|||O arquivo .sha256 do backup está ausente.
+Backup checksum does not match.|||El checksum del backup no coincide.|||O checksum do backup não corresponde.
+The target must be empty. Back up and uninstall/purge the current Panel first.|||El destino debe estar vacío. Desinstala/purga el Panel actual después de respaldarlo.|||O destino deve estar vazio. Faça backup e desinstale/remova os dados do Painel atual antes.
+Downloading the backup's original images|||Descargando imágenes originales de la copia|||Baixando as imagens originais do backup
+Starting the restored Panel|||Arrancando Panel restaurado|||Iniciando o Painel restaurado
+Complete/resume the current Panel installation first.|||Completa/reanuda primero la instalación actual del Panel.|||Conclua/retome a instalação atual do Painel primeiro.
+This version is already installed.|||Ya tienes esa versión.|||Esta versão já está instalada.
+Panel downgrades are not allowed. Restore a backup from that version.|||No se permiten downgrades del Panel; restaura un backup de esa versión.|||Downgrades do Painel não são permitidos. Restaure um backup daquela versão.
+Applying the new release's migrations|||Aplicando migraciones de la versión nueva|||Aplicando as migrações da nova versão
+Checking the updated Panel|||Verificando nuevo Panel|||Verificando o Painel atualizado
+Data preserved. Install Panel can reactivate it.|||Datos conservados. «Instalar Panel» permite reactivarlo.|||Dados preservados. Instalar Painel pode reativá-lo.
+Restarting the Panel|||Reiniciando Panel|||Reiniciando o Painel
+Backup contains a forbidden entry: {value1}|||Backup con entrada no permitida: {value1}|||O backup contém uma entrada não permitida: {value1}
+At least 2 GiB RAM is recommended, plus memory for your games.|||Se recomiendan al menos 2 GiB de RAM, más la memoria de tus juegos.|||São recomendados pelo menos 2 GiB de RAM, além da memória dos jogos.
+Wings requires Docker on a compatible host; virtualization: {value1}.|||Wings requiere Docker en un host compatible; virtualización: {value1}.|||O Wings exige Docker em um host compatível; virtualização: {value1}.
+Invalid Docker repository signing key.|||Clave del repositorio Docker no válida.|||Chave de assinatura inválida do repositório do Docker.
+Unable to detect the APT distribution codename.|||No se pudo determinar el codename de APT.|||Não foi possível detectar o codinome da distribuição APT.
+Remote response is too large.|||Respuesta remota demasiado grande.|||A resposta remota é grande demais.
+No compatible official releases found for {value1}.|||No hay releases oficiales compatibles para {value1}.|||Nenhuma versão oficial compatível encontrada para {value1}.
+Invalid version or unsupported major release.|||Versión no válida o de otra rama principal.|||Versão inválida ou versão principal incompatível.
+This is a prerelease. Continue?|||Es una versión de pruebas. ¿Continuar?|||Esta é uma versão de testes. Continuar?
+SMTP host|||Host SMTP|||Host SMTP
+SMTP port|||Puerto SMTP|||Porta SMTP
+SMTP username|||Usuario SMTP|||Usuário SMTP
+SMTP password|||Contraseña SMTP|||Senha SMTP
+SMTP encryption (tls/ssl/null)|||Cifrado SMTP (tls/ssl/null)|||Criptografia SMTP (tls/ssl/null)
+SQL restore incomplete. Keep the backup and retry in an empty target.|||Restauración SQL incompleta. Conserva el backup y repite la restauración en un destino vacío.|||Restauração SQL incompleta. Guarde o backup e tente novamente em um destino vazio.
+Panel already installed. Use update, restart or SMTP settings.|||El Panel ya está instalado. Usa actualizar, reiniciar o configurar SMTP.|||Painel já instalado. Use atualizar, reiniciar ou configurar SMTP.
+The target contains unregistered files. They will not be overwritten.|||El directorio de destino contiene archivos sin registro; no se sobrescriben.|||O destino contém arquivos não registrados. Eles não serão sobrescritos.
+Downloading and verifying Wings|||Descargando y verificando Wings|||Baixando e verificando o Wings
+Wings SHA-256 mismatch. The file will not be executed.|||El SHA-256 de Wings no coincide. No se ejecutará el archivo.|||O SHA-256 do Wings não corresponde. O arquivo não será executado.
+Wings is already managed ({value1}). Use configure or update.|||Wings ya está gestionado ({value1}). Usa configurar o actualizar.|||O Wings já é gerenciado ({value1}). Use configurar ou atualizar.
+An unmanaged Wings installation exists. It will not be overwritten.|||Hay una instalación de Wings ajena a este script; no se sobrescribe.|||Existe uma instalação do Wings não gerenciada. Ela não será sobrescrita.
+Panel URL|||URL del Panel|||URL do Painel
+Fetching the node configuration|||Obteniendo configuración del nodo|||Obtendo a configuração do node
+Node configuration is too large.|||Configuración del nodo demasiado grande.|||A configuração do node é grande demais.
+Unable to fetch configuration. Check the Panel URL, node ID and Auto-Deploy token.|||No se pudo obtener la configuración. Comprueba URL, ID y token Auto-Deploy.|||Não foi possível obter a configuração. Verifique a URL do Painel, o ID do node e o token Auto-Deploy.
+Releasing port 80 for the node certificate|||Liberando puerto 80 para el certificado del nodo|||Liberando a porta 80 para o certificado do node
+This file is not a Panel backup.|||El archivo no es un backup de Panel.|||Este arquivo não é um backup do Painel.
+The backup is missing SQL or the Panel's original keys.|||La copia no contiene SQL y claves originales del Panel.|||O backup não contém o SQL ou as chaves originais do Painel.
+Restoring SQL with its original application keys|||Restaurando SQL con sus claves originales|||Restaurando o SQL com suas chaves originais
+Update incomplete. Panel stopped. Recovery backup: {value1}|||Actualización incompleta. Panel detenido; copia de recuperación: {value1}|||Atualização incompleta. Painel parado. Backup de recuperação: {value1}
+The Panel is not ready. Resume its installation/update first.|||El Panel no está listo; reanuda la instalación/actualización primero.|||O Painel não está pronto. Retome a instalação/atualização primeiro.
+Backup contains an external link: {value1}|||Backup con enlace externo: {value1}|||O backup contém um link externo: {value1}
+Backup hardlink does not reference an earlier regular file.|||Backup con hardlink sin archivo original anterior.|||O hardlink do backup não referencia um arquivo regular anterior.
+Backup contains a link outside the target directory.|||Backup con enlace que escapa del destino.|||O backup contém um link para fora do diretório de destino.
+Backup contains a symbolic link cycle.|||Backup con ciclo de enlaces.|||O backup contém um ciclo de links simbólicos.
+Pausing the Panel for a consistent backup|||Pausando Panel para una copia consistente|||Pausando o Painel para um backup consistente
+Exporting the database|||Exportando base de datos|||Exportando o banco de dados
+Pausing Redis to preserve queued jobs|||Pausando Redis para guardar las colas|||Pausando o Redis para preservar as tarefas da fila
+Compressing configuration, original keys and data|||Comprimiendo configuración, claves y datos|||Comprimindo a configuração, as chaves originais e os dados
+# Former Spanish-source messages, now keyed by their English text
+/etc/letsencrypt/live/{value1}/fullchain.pem\n/etc/letsencrypt/live/{value2}/privkey.pem|||/etc/letsencrypt/live/{value1}/fullchain.pem\n/etc/letsencrypt/live/{value2}/privkey.pem|||/etc/letsencrypt/live/{value1}/fullchain.pem\n/etc/letsencrypt/live/{value2}/privkey.pem
+Unable to read JSON: {value1}: {value2}|||No se puede leer JSON: {value1}: {value2}|||Não foi possível ler o JSON: {value1}: {value2}
+Existing managed installation: {value1}, {value2}.|||Instalación gestionada existente: {value1}, {value2}.|||Instalação gerenciada existente: {value1}, {value2}.
+Failed: {value1} (exit code {value2}).\n{value3}|||Falló {value1} (código {value2}).\n{value3}|||Falha: {value1} (código {value2}).\n{value3}
+Unable to download {value1}: {value2}|||No se pudo descargar {value1}: {value2}|||Não foi possível baixar {value1}: {value2}
+Port {value1}:{value2} is occupied or unavailable.|||Puerto {value1}:{value2} ocupado o no disponible.|||A porta {value1}:{value2} está ocupada ou indisponível.
+Unable to execute {value1}: {value2}|||No se pudo ejecutar {value1}: {value2}|||Não foi possível executar {value1}: {value2}
+The download exceeds its size limit.|||La descarga supera su límite de tamaño.|||O download excede o limite de tamanho.
+No IPv4 game database network was found.|||No se encontró ninguna red IPv4 para las bases de datos de juegos.|||Nenhuma rede IPv4 foi encontrada para os bancos de dados de jogos.
+The SQL configuration contains an invalid private network.|||La configuración SQL contiene una red privada no válida.|||A configuração SQL contém uma rede privada inválida.
+Native game SQL data is incomplete; recover this SQL instance outside the installer before continuing.|||Los datos del SQL nativo de juegos están incompletos; recupera esta instancia SQL fuera del instalador antes de continuar.|||Os dados do SQL nativo de jogos estão incompletos; recupere esta instância SQL fora do instalador antes de continuar.
+# 1.3.0: local backup retention
+Removed {count} older local backups; keeping the newest {keep} of each kind.|||Se eliminaron {count} copias locales antiguas; se conservan las {keep} más recientes de cada tipo.|||{count} backups locais antigos foram removidos; os {keep} mais recentes de cada tipo foram mantidos.
+Local backup retention|||Retención de copias locales|||Retenção de backups locais
+Panel archives on this server: {value}|||Copias del Panel en este servidor: {value}|||Backups do Painel neste servidor: {value}
+Wings configuration copies on this server: {value}|||Copias de configuración de Wings en este servidor: {value}|||Cópias da configuração do Wings neste servidor: {value}
+Currently kept: {value}|||Se conservan actualmente: {value}|||Mantidos atualmente: {value}
+all|||todas|||todos
+The active rollback point, its safety copy and scheduled copies are never removed.|||Nunca se eliminan el punto de reversión activo, su copia de seguridad ni las copias programadas.|||O ponto de reversão ativo, seu backup de segurança e as cópias agendadas nunca são removidos.
+Copies are pruned after each new backup. 0 keeps every copy.|||Las copias se depuran tras cada backup nuevo. 0 conserva todas.|||As cópias são podadas após cada novo backup. 0 mantém todas.
+Copies of each kind to keep (0-100)|||Copias de cada tipo que se conservan (0-100)|||Cópias de cada tipo a manter (0-100)
+Local backup retention saved.|||Retención de copias locales guardada.|||Retenção de backups locais salva.
+Choose how many local Panel and Wings copies to keep on this server.|||Elige cuántas copias locales del Panel y de Wings conservar en este servidor.|||Escolha quantas cópias locais do Painel e do Wings manter neste servidor.
+Saving the simulated retention setting|||Guardando el ajuste de retención simulado|||Salvando a configuração de retenção simulada
+# 1.3.0: Panel and Wings compatibility
+Panel {panel} requires Wings {oldest} or newer within Wings {major}.x; this node has Wings {wings}.|||El Panel {panel} requiere Wings {oldest} o posterior dentro de Wings {major}.x; este nodo tiene Wings {wings}.|||O Painel {panel} requer o Wings {oldest} ou mais recente dentro do Wings {major}.x; este nó tem o Wings {wings}.
+Untested Panel and Wings combination|||Combinación de Panel y Wings no probada|||Combinação de Painel e Wings não testada
+Panel {panel} with Wings {wings}|||Panel {panel} con Wings {wings}|||Painel {panel} com Wings {wings}
+Validated combination: Panel {panel} with Wings {wings}|||Combinación validada: Panel {panel} con Wings {wings}|||Combinação validada: Painel {panel} com Wings {wings}
+Both releases are compatible by version, but this installer has not tested them together.|||Ambas versiones son compatibles por número de versión, pero este instalador no las ha probado juntas.|||As duas versões são compatíveis pelo número de versão, mas este instalador não as testou juntas.
+Continue with this combination?|||¿Continuar con esta combinación?|||Continuar com esta combinação?

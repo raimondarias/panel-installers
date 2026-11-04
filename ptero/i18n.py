@@ -1,4 +1,5 @@
 """Small, dependency-free message catalogue with formatted-message support."""
+
 import json
 from pathlib import Path
 import re
@@ -14,6 +15,7 @@ class Translator:
         self.language = language
         self.catalogue = json.loads((Path(__file__).parent / "locales/messages.json").read_text())
         from .distribution import ensure_language
+
         self.catalogue = ensure_language(self.catalogue, language)
         self.patterns = []
         for source, translations in self.catalogue.items():

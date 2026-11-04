@@ -1,4 +1,5 @@
 """Choose a Wings bridge without overlapping Docker networks or host routes."""
+
 import ipaddress
 import json
 from .core import InstallerError
@@ -38,6 +39,8 @@ def wings_network(installer, config):
         raise InstallerError('No free private Wings subnet was found. Configure the node network manually.')
     subnet, gateway = choice
     config.setdefault('docker', {})['network'] = {
-        'name': 'pterodactyl_nw', 'interface': gateway,
-        'interfaces': {'v4': {'subnet': str(subnet), 'gateway': gateway}}}
+        'name': 'pterodactyl_nw',
+        'interface': gateway,
+        'interfaces': {'v4': {'subnet': str(subnet), 'gateway': gateway}},
+    }
     return config

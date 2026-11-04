@@ -17,6 +17,23 @@ on:
 permissions:
   contents: read
 jobs:
+  lint:
+    timeout-minutes: 5
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Ruff
+        run: |
+          python3 -m pip install --user --break-system-packages ruff==0.8.6
+          python3 -m ruff check .
+          python3 -m ruff format --check .
+      - name: Translation coverage
+        run: python3 scripts/check_translations.py
+      - name: Release assets and notes build
+        run: |
+          python3 scripts/build_language_packs.py dist
+          (cd dist && sha256sum --check SHA256SUMS)
+          python3 scripts/release_notes.py "$(python3 -c 'import ptero;print(ptero.__version__)')"
   regression:
     timeout-minutes: 15
     runs-on: ubuntu-24.04

@@ -104,13 +104,15 @@ The node API is accessed over verified HTTPS without putting the Auto-Deploy tok
 | 28–30 | Schedule encrypted backups / run backup now / download snapshot |
 | 31–32 | Detailed health / resume installation |
 | 33–34 | Install remote Wings / prepare remote game SQL |
+| 35 | Roll back the last Panel update |
+| 36 | Local backup retention |
 | 0 | Exit |
 
 All listed operations are implemented. A component must be installed and configured before actions that depend on it can run. On a fresh machine, select an action to see its prerequisite and the installation step that prepares it.
 
 In the TUI, these operations are grouped under **Install**, **Maintenance**, **Game databases**, **Backups**, **Remove**, **Nodes** and **Preferences**. The numbers above are stable keyboard shortcuts and the layout used by `--plain`.
 
-These operations are also available as direct commands: `install-all`, `install-panel`, `install-wings`, `uninstall-all`, `uninstall-panel`, `uninstall-wings`, `update-panel`, `update-wings`, `configure-wings`, `tls-wings`, `backup-panel`, `backup-wings`, `restore-panel`, `diagnose`, `restart`, `logs`, `smtp`, `admin`, `firewall`, `configure-database`, `database-credentials`, `create-node`, `backup-schedule`, `backup-run`, `backup-download`, `health`, `resume`, `remote-node` and `remote-database`. Confirmations still apply.
+These operations are also available as direct commands: `install-all`, `install-panel`, `install-wings`, `uninstall-all`, `uninstall-panel`, `uninstall-wings`, `update-panel`, `update-wings`, `configure-wings`, `tls-wings`, `backup-panel`, `backup-wings`, `restore-panel`, `diagnose`, `restart`, `logs`, `smtp`, `admin`, `firewall`, `configure-database`, `database-credentials`, `create-node`, `backup-schedule`, `backup-run`, `backup-download`, `health`, `resume`, `remote-node`, `remote-database`, `rollback-panel` and `backup-retention`. Confirmations still apply.
 
 ## Backups, updates and removal
 
@@ -122,7 +124,7 @@ Scheduled encrypted backups select Panel and/or Wings configuration, including W
 
 Restoration requires empty managed Panel/application directories and preserves the original APP_KEY/HASHIDS_SALT. Standalone restore also requires an empty private Redis directory. The backup's deployment method and database engine are restored; this is not a Docker ↔ standalone or MySQL ↔ MariaDB migration tool. Keep the original domain/IP/DNS or explicitly adapt the configuration afterward.
 
-Panel updates make a backup before migration. A failed migration leaves the new code offline/in maintenance, with a recovery backup path. Resume via Install Panel, or restore the backup into a clean target. Code is not automatically downgraded onto a potentially changed schema. Wings updates recover the previous executable/image and node configuration if startup fails.
+Panel updates show a plan (current → target version) and make a verified backup before migration; that backup becomes the update's rollback point. If the update fails, the installer offers an immediate rollback; declining leaves the new code offline/in maintenance and **Resume installation** then offers to continue the update or roll back. **Roll back Panel update** (35) also works after a successful update. Code is never started on a schema it does not match: see [guided update rollback](ADVANCED.md#guided-panel-update-rollback). Wings updates recover the previous executable/image and node configuration if startup fails.
 
 Uninstall Panel backs it up first and preserves data by default. Permanent data deletion requires another written confirmation and a successful backup. Uninstall Wings backs up configuration, removes only its daemon/service container and keeps game containers, worlds, Docker and certificates. Games can remain running after removing Wings; stop them from the Panel first if that is your intention. No global Docker prune or volume deletion is performed.
 
@@ -131,34 +133,38 @@ Panel HTTPS renews inside its Docker image or through its dedicated standalone C
 ## Files and project structure
 
 ```text
-install.sh                  # English-first selector + verified online download
-languages/
-  en/                       # English runtime archive, locale, manifest, checksum
-  es/                       # Spanish runtime archive, locale, manifest, checksum
-  pt-BR/                    # Brazilian Portuguese equivalent
+install.sh                  # English-first selector, self-update, verified release download
 installer.py                # Compatibility Python entry point
+pyproject.toml              # Project metadata and Ruff lint configuration
 ptero/
   cli.py                    # Language selection, grouped menu, process lock
   ui.py                     # Interface adapter, fallback and terminal lifecycle
   tui.py                    # Full-screen ncurses menus, forms, progress and results
   navigation.py             # Read-only dashboard inventory and action prerequisites
   terminal_text.py          # Unicode cell widths, safe clipping and wrapping
-  i18n.py, locales/          # Maintained three-language source catalogue
-  distribution.py           # Verified language changes from the pinned commit
-  wizard.py                 # Simple / advanced configuration
-  admin.py                  # Administrator creation over stdin
+  i18n.py, locales/         # Three-language catalogue keyed by English source text
+  distribution.py           # Verified language changes from the running release
+  wizard.py, admin.py       # Simple / advanced configuration; administrator over stdin
+  core.py                   # Installer facade composed from the modules below
+  common.py, runtime.py     # Shared validators/file helpers; command runner and paths
+  host.py                   # Host checks, Docker runtime, official releases
+  panel_ops.py, rollback.py # Docker Panel lifecycle; guided update rollback
+  wings_ops.py, wings.py    # Wings lifecycle; Docker Wings backend
+  native*.py                # Standalone Panel: packages, web/TLS and lifecycle
+  compat.py, retention.py   # Panel/Wings compatibility; local backup retention
+  maintenance.py            # Diagnostics, logs, restart and the action table
   game_database.py          # Independent game SQL host + Panel registration
-  core.py                   # Shared lifecycle + Docker Panel backend
-  native.py                 # Standalone Panel backend
-  wings.py                  # Docker Wings backend
   preview.py                # Safe UI preview
 scripts/
   run_local.sh              # Local/offline runtime entry point
-  build_catalog.py          # Build the source catalogue from translation tables
-  build_language_packs.py   # Reproducible packages, one locale in each archive
-  build_release.py          # Upload ZIP, source archive and offline launcher
+  translations.txt          # English|||Spanish|||Portuguese message table
+  build_catalog.py          # Build the catalogue from the translation table
+  check_translations.py     # Fail when a user-visible message is untranslated
+  build_language_packs.py   # Reproducible release assets, one locale per archive
+  release_notes.py          # CHANGELOG section for a release
+  build_release.py          # Source archive and self-contained offline launcher
 tests/                      # Unit, integration-of-commands and remote checks
-docs/                       # Operator guides, previews, test procedure
+docs/                       # Operator guides, previews, test and release procedures
 test-results/               # Verification report and captured test output
 ```
 
@@ -171,7 +177,8 @@ test-results/               # Verification report and captured test output
 | `/var/lib/pterodactyl-installer/redis/` | Standalone private Redis persistence |
 | `/etc/pterodactyl/config.yml` | Private Wings node configuration |
 | `/opt/pterodactyl-installer/wings-compose.json` | Optional Wings container project |
-| `/var/backups/pterodactyl-installer/` | Private backups |
+| `/var/backups/pterodactyl-installer/` | Private backups; the newest 5 of each kind are kept by default (action 36) |
+| `/var/log/pterodactyl-installer/installer.log` | Private redacted log, rotated at 5 MiB with three generations |
 | `/var/log/pterodactyl-installer/installer.log` | Private, redacted installer log |
 | `/var/lib/pterodactyl/` | Wings game data; preserved on removal |
 
@@ -196,7 +203,7 @@ Full clean-VPS deployments, public certificates, email delivery and running a ga
 
 [Guía rápida en español](ES.md) · [Guia rápido em português brasileiro](PT-BR.md).
 
-Next priorities: [ARM64 execution, independent provider tests, notifications and guided rollback](ROADMAP.md).
+Next priorities: [ARM64 execution, independent provider tests, notifications](ROADMAP.md).
 
 ## Upstream references
 

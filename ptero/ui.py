@@ -1,4 +1,5 @@
 """Responsive terminal cards, menus, prompts and cancellable progress animation."""
+
 import contextlib
 import getpass
 import os
@@ -35,6 +36,7 @@ class UI:
             if size.columns >= 60 and size.lines >= 18:
                 try:
                     from .tui import Terminal
+
                     renderer = Terminal(self)
                     renderer.start()
                 except BaseException as exc:
@@ -46,8 +48,10 @@ class UI:
                     renderer = None
                     self.say("Full-screen mode is unavailable. Using the numbered interface.", "muted")
         old_handlers = {}
+
         def interrupt(*_):
             raise KeyboardInterrupt
+
         try:
             if renderer:
                 self.screen = renderer
@@ -75,15 +79,19 @@ class UI:
 
     def say(self, text, kind="info"):
         if self.screen:
-            self.screen.record(self.tr(str(text)), style={"info": "text", "muted": "muted", "ok": "ok", "warn": "warn", "error": "error"}.get(kind, "text"))
+            self.screen.record(
+                self.tr(str(text)), style={"info": "text", "muted": "muted", "ok": "ok", "warn": "warn", "error": "error"}.get(kind, "text")
+            )
             return
         colors = {"info": "36", "ok": "32", "warn": "33", "error": "31", "muted": "90"}
         print(self.paint(self.tr(str(text)), colors.get(kind, "36")), flush=True)
 
     def card(self, title, rows=(), subtitle=None):
         if self.screen:
-            translated = [*([self.tr(subtitle)] if subtitle else []),
-                          *(str(row) if isinstance(row, Literal) else self.tr(str(row)) for row in rows)]
+            translated = [
+                *([self.tr(subtitle)] if subtitle else []),
+                *(str(row) if isinstance(row, Literal) else self.tr(str(row)) for row in rows),
+            ]
             self.screen.record(title, translated)
             if title in ("Ready to install", "Save your generated password", "Game database host is ready"):
                 self.screen.result(title, translated, can_cancel=title != "Game database host is ready")
@@ -100,10 +108,14 @@ class UI:
         print(self.paint("╰" + "─" * width + "╯", "36"), flush=True)
 
     def banner(self):
-        self.card("Pterodactyl Installer", [
-            "Panel v2  ·  Wings  ·  Ubuntu / Debian",
-            "Install. Configure. Maintain.",
-        ], "A guided setup, from the first question to your first server.")
+        self.card(
+            "Pterodactyl Installer",
+            [
+                "Panel v2  ·  Wings  ·  Ubuntu / Debian",
+                "Install. Configure. Maintain.",
+            ],
+            "A guided setup, from the first question to your first server.",
+        )
 
     def step(self, number, total, title):
         if self.screen:
@@ -114,12 +126,17 @@ class UI:
 
     def ask(self, label, default=None, validator=None, secret=False):
         from .core import Cancelled
+
         initial, error = None, ""
         while True:
             suffix = f" [{default}]" if default is not None and not secret else ""
             prompt = self.paint("  › ", "35") + self.tr(label) + suffix + ": "
             try:
-                value = self.screen.prompt(label, default, secret, initial, error) if self.screen else (getpass.getpass if secret else input)(prompt)
+                value = (
+                    self.screen.prompt(label, default, secret, initial, error)
+                    if self.screen
+                    else (getpass.getpass if secret else input)(prompt)
+                )
             except EOFError as exc:
                 raise Cancelled("Input closed. The operation was not confirmed.") from exc
             if not secret:
@@ -137,12 +154,16 @@ class UI:
             return self.choice(label, [(True, "Yes", ""), (False, "No", "")], 0 if default else 1)
         yes_letter = "y" if self.language == "en" else "s"
         default_value = yes_letter if default else "n"
-        value = self.ask(self.tr(label) + f" ({yes_letter}/n)", default_value,
-                         lambda s: s.lower() in ("y", "yes", "s", "si", "sí", "sim", "n", "no", "não", "nao"))
+        value = self.ask(
+            self.tr(label) + f" ({yes_letter}/n)",
+            default_value,
+            lambda s: s.lower() in ("y", "yes", "s", "si", "sí", "sim", "n", "no", "não", "nao"),
+        )
         return value.lower() in ("y", "yes", "s", "si", "sí", "sim")
 
     def confirm(self, phrase):
         from .core import Cancelled
+
         phrase = self.tr(phrase)
         prompt = self.tr("Type {phrase} to continue").format(phrase=phrase)
         if self.ask(prompt) != phrase:
@@ -152,13 +173,15 @@ class UI:
         """options = [(value, label, description), ...]. Keep numeric input accessible."""
         if self.screen:
             from .navigation import Item
-            return self.screen.select(title, [Item(value, label, note, shortcut=str(index))
-                                              for index, (value, label, note) in enumerate(options, 1)], default)
-        self.card(title, [f"{index}. {self.tr(label)}" +
-                          (f" — {self.tr(note)}" if note else "")
-                          for index, (_, label, note) in enumerate(options, 1)])
-        answer = self.ask("Choose an option", str(default + 1),
-                          lambda s: s.isdigit() and 1 <= int(s) <= len(options))
+
+            return self.screen.select(
+                title, [Item(value, label, note, shortcut=str(index)) for index, (value, label, note) in enumerate(options, 1)], default
+            )
+        self.card(
+            title,
+            [f"{index}. {self.tr(label)}" + (f" — {self.tr(note)}" if note else "") for index, (_, label, note) in enumerate(options, 1)],
+        )
+        answer = self.ask("Choose an option", str(default + 1), lambda s: s.isdigit() and 1 <= int(s) <= len(options))
         return options[int(answer) - 1][0]
 
     @contextlib.contextmanager
@@ -169,6 +192,7 @@ class UI:
             return
         done = threading.Event()
         label = self.tr(label)
+
         def spin():
             frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
             started, index = time.monotonic(), 0
@@ -177,6 +201,7 @@ class UI:
                 text = f"{frames[index % len(frames)]} {label[:width]}  {int(time.monotonic() - started)}s"
                 print("\r\033[2K" + self.paint(text, "36"), end="", flush=True)
                 index += 1
+
         thread = threading.Thread(target=spin, daemon=True) if self.animate else None
         if thread:
             thread.start()

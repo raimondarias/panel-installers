@@ -1,4 +1,5 @@
 """Idempotent first-node provisioning through Panel v2 contracts."""
+
 import ipaddress
 import re
 from .core import InstallerError, valid_host, node_configuration, write_json
@@ -17,12 +18,18 @@ def plan(installer):
     ui = installer.ui
     ui.step(1, 3, 'Node resources')
     short = ui.ask('Location code', 'local', lambda v: bool(re.fullmatch(r'[A-Za-z0-9_.-]{1,60}', v)))
-    data = {'location': short, 'name': ui.ask('Node name', 'Node 1', lambda v: bool(re.fullmatch(r'[A-Za-z0-9_. -]{1,100}', v))),
-            'fqdn': ui.ask('Node hostname / IPv4', validator=valid_host),
-            'memory': int(ui.ask('Node memory (MiB)', '1024', lambda v: v.isdigit() and 128 <= int(v) <= 2147483647)),
-            'disk': int(ui.ask('Node disk (MiB)', '10240', lambda v: v.isdigit() and 1024 <= int(v) <= 2147483647)),
-            'memory_overallocate': 0, 'disk_overallocate': 0, 'public': True,
-            'upload_size': 100, 'daemon_base': '/var/lib/pterodactyl/volumes'}
+    data = {
+        'location': short,
+        'name': ui.ask('Node name', 'Node 1', lambda v: bool(re.fullmatch(r'[A-Za-z0-9_. -]{1,100}', v))),
+        'fqdn': ui.ask('Node hostname / IPv4', validator=valid_host),
+        'memory': int(ui.ask('Node memory (MiB)', '1024', lambda v: v.isdigit() and 128 <= int(v) <= 2147483647)),
+        'disk': int(ui.ask('Node disk (MiB)', '10240', lambda v: v.isdigit() and 1024 <= int(v) <= 2147483647)),
+        'memory_overallocate': 0,
+        'disk_overallocate': 0,
+        'public': True,
+        'upload_size': 100,
+        'daemon_base': '/var/lib/pterodactyl/volumes',
+    }
     tls = ui.yes('Use HTTPS for the node?', True)
     data['scheme'] = 'https' if tls else 'http'
     data['behind_proxy'] = ui.yes('Is an existing HTTPS reverse proxy terminating node TLS?', False) if tls else False
@@ -33,21 +40,30 @@ def plan(installer):
     if data['daemon_listen'] == data['daemon_sftp']:
         raise InstallerError('Node API and SFTP ports must be different.')
     ui.step(2, 3, 'Game allocations')
+
     def ipv4(v):
         try:
             ip = ipaddress.IPv4Address(v)
             return not (ip.is_unspecified or ip.is_multicast)
         except ValueError:
             return False
+
     data['allocation_ip'] = ui.ask('Allocation IPv4 address', validator=ipv4)
     data['allocation_ports'] = [ui.ask('Allocation port or range', '25565-25575', port_range)]
-    first, last = (map(int, data['allocation_ports'][0].split('-')) if '-' in data['allocation_ports'][0] else [int(data['allocation_ports'][0])] * 2)
+    first, last = (
+        map(int, data['allocation_ports'][0].split('-')) if '-' in data['allocation_ports'][0] else [int(data['allocation_ports'][0])] * 2
+    )
     if any(first <= data[k] <= last for k in ('daemon_listen', 'daemon_sftp')):
         raise InstallerError('Game allocations cannot overlap node API or SFTP ports.')
     ui.step(3, 3, 'Review node')
-    ui.card('Ready to install', [f"{data['name']} · {data['scheme']}://{data['fqdn']}:{data['daemon_listen']}",
+    ui.card(
+        'Ready to install',
+        [
+            f"{data['name']} · {data['scheme']}://{data['fqdn']}:{data['daemon_listen']}",
             ui.tr('Node resources: {memory} MiB RAM / {disk} MiB disk').format(**data),
-            f"{data['allocation_ip']}:{data['allocation_ports'][0]}"])
+            f"{data['allocation_ip']}:{data['allocation_ports'][0]}",
+        ],
+    )
     return data
 
 
@@ -78,6 +94,7 @@ def create(installer, data, link=False):
         if installer.p.config.exists():
             installer.backup_wings()
         from .networking import wings_network
+
         wings_network(installer, config)
         write_json(installer.p.config, config)
         state = installer.load(installer.p.wings_state)

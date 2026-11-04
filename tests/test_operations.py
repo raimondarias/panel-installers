@@ -1,4 +1,5 @@
 """New node, recovery, backup, native SQL and SSH boundary regressions."""
+
 import io
 import json
 import os
@@ -21,26 +22,45 @@ class OperationsTests(BaseTest):
     def test_native_game_sql_refuses_mysql_community_before_package_changes(self):
         backend = NativeGameDatabase(GameDatabase(self.installer))
         calls = []
+
         def command(args, **kwargs):
             calls.append(args)
             return (0, 'install ok installed') if args[-1] == 'mysql-community-server' else (1, '')
-        with patch.object(self.installer, 'check_host', return_value={'ID':'debian','VERSION_CODENAME':'trixie'}), patch.object(self.runner, 'run', side_effect=command):
+
+        with (
+            patch.object(self.installer, 'check_host', return_value={'ID': 'debian', 'VERSION_CODENAME': 'trixie'}),
+            patch.object(self.runner, 'run', side_effect=command),
+        ):
             with self.assertRaisesRegex(InstallerError, 'different database engine'):
-                backend.dependencies({'engine':'mariadb'})
-        self.assertFalse(any(args[0]=='apt-get' for args in calls))
+                backend.dependencies({'engine': 'mariadb'})
+        self.assertFalse(any(args[0] == 'apt-get' for args in calls))
 
     def test_wings_subnet_avoids_panel_compose_and_host_routes(self):
         from ptero.networking import wings_network
-        replies = ['panel\nhost\nnone\n', json.dumps([{'Name':'host','IPAM':{'Config':None}}, {'Name':'none','IPAM':None},
-                   {'Name':'panel_default','IPAM':{'Config':[{'Subnet':'172.18.0.0/16'}]}}]),
-                   json.dumps([{'dst':'default'},{'dst':'172.30.0.0/24'}])]
+
+        replies = [
+            'panel\nhost\nnone\n',
+            json.dumps(
+                [
+                    {'Name': 'host', 'IPAM': {'Config': None}},
+                    {'Name': 'none', 'IPAM': None},
+                    {'Name': 'panel_default', 'IPAM': {'Config': [{'Subnet': '172.18.0.0/16'}]}},
+                ]
+            ),
+            json.dumps([{'dst': 'default'}, {'dst': '172.30.0.0/24'}]),
+        ]
         with patch.object(self.runner, 'run', side_effect=[(0, value) for value in replies]):
             result = wings_network(self.installer, {})
         self.assertEqual(result['docker']['network']['interfaces']['v4']['subnet'], '172.30.1.0/24')
 
     def test_wings_reuses_existing_bridge_and_preserves_explicit_configuration(self):
         from ptero.networking import wings_network
-        replies = ['wings', json.dumps([{'Name':'pterodactyl_nw','IPAM':{'Config':[{'Subnet':'10.20.0.0/24','Gateway':'10.20.0.1'}]}}]), '[]']
+
+        replies = [
+            'wings',
+            json.dumps([{'Name': 'pterodactyl_nw', 'IPAM': {'Config': [{'Subnet': '10.20.0.0/24', 'Gateway': '10.20.0.1'}]}}]),
+            '[]',
+        ]
         with patch.object(self.runner, 'run', side_effect=[(0, value) for value in replies]):
             config = wings_network(self.installer, {})
         self.assertEqual(config['docker']['network']['interface'], '10.20.0.1')
@@ -50,34 +70,35 @@ class OperationsTests(BaseTest):
 
     def test_apparmor_game_sql_rules_preserve_existing_local_rules(self):
         backend = NativeGameDatabase(GameDatabase(self.installer))
-        directory = self.paths.root/'etc/apparmor.d'
-        (directory/'local').mkdir(parents=True)
-        (directory/'usr.sbin.mysqld').write_text('#include <local/usr.sbin.mysqld>\n')
-        local = directory/'local/usr.sbin.mysqld'
+        directory = self.paths.root / 'etc/apparmor.d'
+        (directory / 'local').mkdir(parents=True)
+        (directory / 'usr.sbin.mysqld').write_text('#include <local/usr.sbin.mysqld>\n')
+        local = directory / 'local/usr.sbin.mysqld'
         local.write_text('/custom/site/** r,\n')
-        backend.apparmor(); backend.apparmor()
+        backend.apparmor()
+        backend.apparmor()
         text = local.read_text()
         self.assertIn('/custom/site/** r,', text)
         self.assertEqual(text.count('# BEGIN PTERO GAME SQL'), 1)
-        self.assertIn(str(backend.data)+'/** rwk,', text)
+        self.assertIn(str(backend.data) + '/** rwk,', text)
         self.assertNotIn('/var/lib/mysql/**', text)
 
     def test_modern_mariadb_apparmor_profile_gets_scoped_local_rules(self):
         backend = NativeGameDatabase(GameDatabase(self.installer))
-        directory = self.paths.root/'etc/apparmor.d'
+        directory = self.paths.root / 'etc/apparmor.d'
         directory.mkdir(parents=True)
-        (directory/'mariadbd').write_text('profile mariadbd /usr/sbin/mariadbd {\n include if exists <local/mariadbd>\n}\n')
+        (directory / 'mariadbd').write_text('profile mariadbd /usr/sbin/mariadbd {\n include if exists <local/mariadbd>\n}\n')
         backend.apparmor()
-        self.assertIn(str(backend.data)+'/** rwk,', (directory/'local/mariadbd').read_text())
-        self.assertTrue(any(args[:2]==['apparmor_parser','-r'] for args,_ in self.runner.calls))
+        self.assertIn(str(backend.data) + '/** rwk,', (directory / 'local/mariadbd').read_text())
+        self.assertTrue(any(args[:2] == ['apparmor_parser', '-r'] for args, _ in self.runner.calls))
 
     def test_wings_has_one_start_to_avoid_concurrent_bridge_creation(self):
         self.wings()
         with patch('ptero.core.time.sleep'):
             self.installer.start_wings()
-        commands=[args for args,_ in self.runner.calls if args[0]=='systemctl']
-        self.assertIn(['systemctl','enable','wings'], commands)
-        self.assertEqual(sum(args[1]=='restart' or '--now' in args for args in commands), 1)
+        commands = [args for args, _ in self.runner.calls if args[0] == 'systemctl']
+        self.assertIn(['systemctl', 'enable', 'wings'], commands)
+        self.assertEqual(sum(args[1] == 'restart' or '--now' in args for args in commands), 1)
 
     def test_failed_phase_persists_failure_without_exception_secrets_and_can_resume(self):
         state = {'version': 'v2'}
@@ -111,6 +132,7 @@ class OperationsTests(BaseTest):
     def test_node_provisioning_uses_contracts_and_saves_tokens_privately(self):
         self.panel()
         from test_installer import node_payload
+
         payload = {'node_id': 3, 'configuration': node_payload()}
         with patch('ptero.nodes.execute', return_value=payload) as bridge:
             result = create(self.installer, {'name': 'Node 1'})
@@ -133,9 +155,11 @@ class OperationsTests(BaseTest):
         target = {'host': 'node.example.com', 'port': 2222, 'identity': '/root/key', 'known_hosts': '/root/known_hosts'}
         original = self.runner.run
         captured = []
+
         def run(args, **kwargs):
             captured.append(kwargs['input_file'].read())
             return 0, 'PTERO_REMOTE_SUCCESS'
+
         self.runner.run = run
         execute(self.installer, target, {'action': 'database', 'settings': {'password': 'private-secret'}})
         self.assertIn(b'private-secret', captured[0])
@@ -161,8 +185,9 @@ class OperationsTests(BaseTest):
         self.assertIn('game-sql', config)
         self.assertEqual(backend.config.parent.stat().st_mode & 0o777, 0o755)
         self.assertEqual(backend.config.stat().st_mode & 0o777, 0o640)
-        initialization = [(args, kwargs) for args, kwargs in self.runner.calls
-                          if kwargs.get('label') == 'Initializing isolated native game SQL']
+        initialization = [
+            (args, kwargs) for args, kwargs in self.runner.calls if kwargs.get('label') == 'Initializing isolated native game SQL'
+        ]
         self.assertEqual(initialization[0][0][:4], ['runuser', '-u', 'ptero-game-sql', '--'])
         self.assertEqual(initialization[0][1]['cwd'], str(backend.data))
         self.assertNotIn('ptero_panel', config)
@@ -180,16 +205,25 @@ class OperationsTests(BaseTest):
 
     def configure_backup_profile(self, **changes):
         self.paths.base.mkdir(parents=True, exist_ok=True)
-        profile = {'schema': 1, 'owner': 'ptero-installer', 'repository': '/private-repository',
-                   'backup_id': 'test-instance', 'environment': {}, 'keep_daily': 7, 'keep_weekly': 4,
-                   **changes}
+        profile = {
+            'schema': 1,
+            'owner': 'ptero-installer',
+            'repository': '/private-repository',
+            'backup_id': 'test-instance',
+            'environment': {},
+            'keep_daily': 7,
+            'keep_weekly': 4,
+            **changes,
+        }
         write_json(self.paths.base / 'backup-profile.json', profile)
         return ScheduledBackups(self.installer)
 
     def test_backup_plan_never_asks_to_include_hosted_server_data(self):
         ui = QuietUI(['/private-repository', 'strong-backup-password', 'strong-backup-password'])
-        with patch.object(ui, 'choice', return_value='daily'), \
-             patch.object(ui, 'yes', side_effect=AssertionError('No game inclusion prompt')):
+        with (
+            patch.object(ui, 'choice', return_value='daily'),
+            patch.object(ui, 'yes', side_effect=AssertionError('No game inclusion prompt')),
+        ):
             profile, password = backup_plan(ui)
         self.assertEqual(profile['scope'], 'panel-wings-config')
         self.assertNotIn('games', profile)
@@ -207,6 +241,7 @@ class OperationsTests(BaseTest):
 
     def test_native_panel_backup_excludes_unknown_data_directories(self):
         from ptero.native import NativeBackend
+
         state = {**self.state, 'method': 'standalone', 'database_engine': 'mariadb', 'php': '8.3', 'redis_password': 'c' * 64}
         self.installer.save_panel(state)
         backend = NativeBackend(self.installer, state)
@@ -267,13 +302,17 @@ class OperationsTests(BaseTest):
         scheduler = self.configure_backup_profile()
         observed = {}
         original = self.runner.run
+
         def run(args, **kwargs):
             if args[:2] == ['restic', 'backup']:
                 bundle = Path(kwargs['cwd'])
                 observed.update({p.name: p.read_bytes() for p in bundle.iterdir()})
             return original(args, **kwargs)
-        with patch.object(self.runner, 'run', side_effect=run), \
-             patch.object(self.installer, 'backup_panel', side_effect=AssertionError('No Panel')):
+
+        with (
+            patch.object(self.runner, 'run', side_effect=run),
+            patch.object(self.installer, 'backup_panel', side_effect=AssertionError('No Panel')),
+        ):
             scheduler.run_now()
         self.assertIn('wings-state.json', observed)
         self.assertIn('wings-config.yml', observed)
@@ -286,12 +325,10 @@ class OperationsTests(BaseTest):
         scheduler = self.configure_backup_profile()
         manual = self.installer.backup_wings()
         # Even a manual directory present in legacy history is not scheduler-owned.
-        write_json(self.paths.base / 'backup-history.json', {'schema': 1, 'owner': 'ptero-installer',
-                   'runs': [[str(manual)]]})
+        write_json(self.paths.base / 'backup-history.json', {'schema': 1, 'owner': 'ptero-installer', 'runs': [[str(manual)]]})
         for _ in range(5):
             scheduler.run_now()
-        scheduled = [path for path in self.paths.backups.glob('wings-*')
-                     if (path / 'scheduled-backup.json').exists()]
+        scheduled = [path for path in self.paths.backups.glob('wings-*') if (path / 'scheduled-backup.json').exists()]
         self.assertEqual(len(scheduled), 3)
         self.assertTrue((manual / 'wings.json').is_file())
         self.assertTrue((manual / 'config.yml').is_file())
@@ -323,13 +360,20 @@ class OperationsTests(BaseTest):
         scheduler = self.configure_backup_profile()
         for name in ('/game-files-old.tar.gz', '/game-databases-old.tar.gz', '/volumes/world.dat'):
             calls = []
+
             def run(args, **kwargs):
                 calls.append(args)
-                if args[1] == 'snapshots': return 0, '[{"id":"snapshot"}]'
-                if args[1] == 'ls': return 0, json.dumps({'struct_type': 'node', 'type': 'file', 'path': name})
+                if args[1] == 'snapshots':
+                    return 0, '[{"id":"snapshot"}]'
+                if args[1] == 'ls':
+                    return 0, json.dumps({'struct_type': 'node', 'type': 'file', 'path': name})
                 raise AssertionError('Restore must not run')
-            with self.subTest(name=name), patch.object(self.runner, 'run', side_effect=run), \
-                 self.assertRaisesRegex(InstallerError, 'Nothing was downloaded'):
+
+            with (
+                self.subTest(name=name),
+                patch.object(self.runner, 'run', side_effect=run),
+                self.assertRaisesRegex(InstallerError, 'Nothing was downloaded'),
+            ):
                 scheduler.download()
             self.assertFalse(any(args[1] == 'restore' for args in calls))
         self.assertFalse(self.paths.backups.exists())
@@ -339,12 +383,16 @@ class OperationsTests(BaseTest):
             archive = Path(self.temporary.name) / 'legacy.tar.gz'
             with tarfile.open(archive, 'w:gz') as tar:
                 for path, value in [('manifest.json', b'{"type":"panel-backup","owner":"ptero-installer"}'), (name, b'PRIVATE GAME DATA')]:
-                    member = tarfile.TarInfo(path); member.size = len(value)
+                    member = tarfile.TarInfo(path)
+                    member.size = len(value)
                     tar.addfile(member, io.BytesIO(value))
             Path(str(archive) + '.sha256').write_text(checksum(archive))
             self.ui.answers = [str(archive)]
-            with self.subTest(name=name), patch('ptero.core.secure_extract') as extract, \
-                 self.assertRaisesRegex(InstallerError, 'hosted-server content'):
+            with (
+                self.subTest(name=name),
+                patch('ptero.core.secure_extract') as extract,
+                self.assertRaisesRegex(InstallerError, 'hosted-server content'),
+            ):
                 self.installer.restore_panel()
             extract.assert_not_called()
         self.assertEqual(self.runner.calls, [])
@@ -373,7 +421,8 @@ class OperationsTests(BaseTest):
         self.assertEqual([args for args, _ in self.runner.calls], [['systemctl', 'is-active', '--quiet', 'wings']])
 
     def test_diagnostics_failed_panel_backend_does_not_hide_healthy_wings(self):
-        self.panel(); self.wings()
+        self.panel()
+        self.wings()
         with patch.object(self.installer, 'dc', side_effect=InstallerError('Panel failed')):
             self.installer.diagnostics()
         messages = ' '.join(str(message) for message, _ in self.ui.messages)
@@ -391,6 +440,7 @@ class OperationsTests(BaseTest):
     def test_health_report_collects_multiple_failures_instead_of_hiding_them(self):
         self.panel()
         from ptero.health import inspect
+
         with patch('ptero.health.urllib.request.urlopen', side_effect=OSError('offline')):
             rows = inspect(self.installer)
         self.assertTrue(any('Panel containers' in row for row in rows))
@@ -399,25 +449,35 @@ class OperationsTests(BaseTest):
     def test_health_reports_pending_migrations_and_queue_failures_in_docker(self):
         self.panel()
         from ptero.health import inspect
+
         def command(*args, **kwargs):
-            if 'migrate:status' in args:return 0, '2026_10_23_create_games ........ Pending\n'
-            if 'queue:failed' in args:return 0, '17 failed jobs\n'
+            if 'migrate:status' in args:
+                return 0, '2026_10_23_create_games ........ Pending\n'
+            if 'queue:failed' in args:
+                return 0, '17 failed jobs\n'
             return 0, '[]'
-        with patch.object(self.installer, 'dc', side_effect=command), patch('ptero.health.urllib.request.urlopen', side_effect=OSError('offline')):
-            rows=inspect(self.installer)
+
+        with (
+            patch.object(self.installer, 'dc', side_effect=command),
+            patch('ptero.health.urllib.request.urlopen', side_effect=OSError('offline')),
+        ):
+            rows = inspect(self.installer)
         self.assertTrue(any('Needs attention: Panel SQL and migrations' in row for row in rows))
         self.assertTrue(any('Needs attention: Queue failures' in row for row in rows))
 
     def test_menu_shortcuts_remain_unique_with_language_23_reserved(self):
         from ptero.cli import ENTRIES
         from ptero.navigation import inventory, menu_items
+
         items = menu_items(ENTRIES, inventory(self.installer))
         values = [item.shortcut for item in items]
         self.assertEqual(len(values), len(set(values)))
         self.assertEqual(next(i for i in items if i.shortcut == '23').value, 'language')
 
     def test_actual_encrypted_repository_roundtrip(self):
-        binary = shutil.which('restic') or ('/root/ptero-lab/tools/usr/bin/restic' if Path('/root/ptero-lab/tools/usr/bin/restic').exists() else None)
+        binary = shutil.which('restic') or (
+            '/root/ptero-lab/tools/usr/bin/restic' if Path('/root/ptero-lab/tools/usr/bin/restic').exists() else None
+        )
         if not binary:
             self.skipTest('Restic executable unavailable')
         root = Path(self.temporary.name)
@@ -426,21 +486,37 @@ class OperationsTests(BaseTest):
         repository = root / 'encrypted-repo'
         self.paths.base.mkdir(parents=True, exist_ok=True)
         (self.paths.base / 'backup-password').write_text('test-encryption-password-123!\n')
-        profile = {'schema': 1, 'owner': 'ptero-installer', 'repository': str(repository), 'backup_id': 'test-instance',
-                   'environment': {}, 'keep_daily': 7, 'keep_weekly': 4, 'games': False}
+        profile = {
+            'schema': 1,
+            'owner': 'ptero-installer',
+            'repository': str(repository),
+            'backup_id': 'test-instance',
+            'environment': {},
+            'keep_daily': 7,
+            'keep_weekly': 4,
+            'games': False,
+        }
         write_json(self.paths.base / 'backup-profile.json', profile)
         scheduler = ScheduledBackups(self.installer)
         env = scheduler.environment(profile)
         subprocess.run([binary, 'init'], env={**os.environ, **env}, capture_output=True, check=True)
         self.panel()
         original = self.runner.run
+
         def run(args, **kwargs):
             if str(args[0]) == 'restic':
-                result = subprocess.run([binary, *map(str, args[1:])], cwd=kwargs.get('cwd'), env={**os.environ, **kwargs.get('env', {})}, capture_output=True, text=True)
+                result = subprocess.run(
+                    [binary, *map(str, args[1:])],
+                    cwd=kwargs.get('cwd'),
+                    env={**os.environ, **kwargs.get('env', {})},
+                    capture_output=True,
+                    text=True,
+                )
                 if result.returncode:
                     raise InstallerError(result.stderr)
                 return result.returncode, result.stdout
             return original(args, **kwargs)
+
         self.runner.run = run
         with patch.object(self.installer, 'backup_panel', return_value=archive):
             scheduler.run_now()
@@ -453,6 +529,7 @@ class OperationsTests(BaseTest):
     def test_native_health_waits_for_php_socket_readiness_after_reload(self):
         from unittest.mock import MagicMock
         from ptero.native import NativeBackend
+
         backend = NativeBackend(self.installer, {**self.state, 'method': 'standalone'})
         responses = [MagicMock(), MagicMock()]
         responses[0].getresponse.return_value.status = 502
@@ -465,13 +542,20 @@ class OperationsTests(BaseTest):
             response.close.assert_called_once()
 
     def test_mysql_authentication_plugin_is_saved_verified_and_repaired(self):
-        state = {**self.state, 'method': 'docker', 'database_engine': 'mysql',
-                 'panel_image': 'ghcr.io/pterodactyl/panel@sha256:' + 'a' * 64}
+        state = {
+            **self.state,
+            'method': 'docker',
+            'database_engine': 'mysql',
+            'panel_image': 'ghcr.io/pterodactyl/panel@sha256:' + 'a' * 64,
+        }
         self.installer.save_panel(state)
         self.installer.prepare_mysql_client(state)
         plugin = self.paths.data / 'mysql-plugins/caching_sha2_password.so'
         self.assertEqual(state['mysql_plugin_sha256'], checksum(plugin))
-        count = lambda: sum(args[:2] == ['docker', 'run'] for args, _ in self.runner.calls)
+
+        def count():
+            return sum(args[:2] == ['docker', 'run'] for args, _ in self.runner.calls)
+
         self.assertEqual(count(), 1)
         self.installer.prepare_mysql_client(state)
         self.assertEqual(count(), 1)

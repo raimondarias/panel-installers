@@ -1,18 +1,15 @@
 """Regression coverage for localization, guided choices and both deployment backends."""
+
 import contextlib
 import io
 import json
-import os
 from pathlib import Path
 import shutil
 import string
 import subprocess
-import sys
-import tempfile
-import unittest
 from unittest.mock import patch
 
-from test_installer import BaseTest, FakeRunner, QuietUI
+from test_installer import BaseTest, QuietUI
 import installer as app
 from ptero import __version__
 from ptero.cli import select_language
@@ -38,10 +35,13 @@ class PlannedUI(QuietUI):
         return value
 
     def ask(self, label, default=None, validator=None, secret=False):
-        values = {"Domain / subdomain (without http://)": "panel.example.test",
-                  "Administrator email": "admin@example.test", "Administrator username": "admin",
-                  "Administrator password (12+ characters; empty generates one)": "A-strong-password-123!",
-                  "Confirm administrator password": "A-strong-password-123!"}
+        values = {
+            "Domain / subdomain (without http://)": "panel.example.test",
+            "Administrator email": "admin@example.test",
+            "Administrator username": "admin",
+            "Administrator password (12+ characters; empty generates one)": "A-strong-password-123!",
+            "Confirm administrator password": "A-strong-password-123!",
+        }
         value = values.get(label, default)
         self.prompts.append((label, secret))
         if validator and not validator(value):
@@ -52,7 +52,10 @@ class PlannedUI(QuietUI):
 class LocalizationTests(BaseTest):
     def test_all_catalogue_entries_have_three_languages_and_matching_fields(self):
         tr = Translator()
-        fields = lambda text: {field for _, field, _, _ in string.Formatter().parse(text) if field is not None}
+
+        def fields(text):
+            return {field for _, field, _, _ in string.Formatter().parse(text) if field is not None}
+
         for source, values in tr.catalogue.items():
             for language in ("en", "es", "pt-BR"):
                 self.assertTrue(values[language], source)
@@ -68,14 +71,16 @@ class LocalizationTests(BaseTest):
             self.assertIn(expected, stream.getvalue())
 
     def test_each_language_localizes_recommendations_and_confirmations(self):
-        for language, recommended, confirm in (("en", "Recommended", "INSTALL PANEL"),
-                                                ("es", "Recomendado", "INSTALAR PANEL"),
-                                                ("pt-BR", "Recomendado", "INSTALAR PAINEL")):
+        for language, recommended, confirm in (
+            ("en", "Recommended", "INSTALL PANEL"),
+            ("es", "Recomendado", "INSTALAR PANEL"),
+            ("pt-BR", "Recomendado", "INSTALAR PAINEL"),
+        ):
             ui = app.UI(False, language)
             self.assertIn(recommended, ui.tr("Standalone (Recommended)"))
             with patch("builtins.input", return_value=confirm):
                 ui.confirm("INSTALL PANEL")
-            self.assertNotIn("{", ui.tr("Puerto 0.0.0.0:80 ocupado o no disponible."))
+            self.assertNotIn("{", ui.tr("Port 0.0.0.0:80 is occupied or unavailable."))
 
     def test_brazilian_portuguese_menu(self):
         self.installer.ui = app.UI(False, "pt-BR")
@@ -103,7 +108,11 @@ class WizardTests(BaseTest):
                             ui = PlannedUI(method, database, access)
                             ui.set_language(language)
                             self.installer.ui = ui
-                            with patch.object(self.installer, "release", return_value={"tag_name": app.PANEL_VERSION, "prerelease": True}), patch.object(self.installer, "fetch", return_value=b"8.8.8.8"), patch.object(self.installer, "check_plan"):
+                            with (
+                                patch.object(self.installer, "release", return_value={"tag_name": app.PANEL_VERSION, "prerelease": True}),
+                                patch.object(self.installer, "fetch", return_value=b"8.8.8.8"),
+                                patch.object(self.installer, "check_plan"),
+                            ):
                                 state = panel_plan(self.installer)
                             self.assertEqual(state["method"], method)
                             self.assertEqual(state["database_engine"], database)
@@ -115,7 +124,11 @@ class WizardTests(BaseTest):
 
     def test_advanced_standalone_exposes_php_network_and_timezone(self):
         self.installer.ui = PlannedUI("standalone", "mysql", "ip", advanced=True)
-        with patch.object(self.installer, "release", return_value={"tag_name": app.PANEL_VERSION, "prerelease": True}), patch.object(self.installer, "fetch", return_value=b"8.8.8.8"), patch.object(self.installer, "check_plan"):
+        with (
+            patch.object(self.installer, "release", return_value={"tag_name": app.PANEL_VERSION, "prerelease": True}),
+            patch.object(self.installer, "fetch", return_value=b"8.8.8.8"),
+            patch.object(self.installer, "check_plan"),
+        ):
             state = panel_plan(self.installer)
         self.assertEqual(state["php"], "8.4")
         self.assertIn(("Listen IPv4 address", False), self.installer.ui.prompts)
@@ -129,14 +142,22 @@ class WizardTests(BaseTest):
     def test_standalone_dispatch_does_not_install_docker(self):
         self.state.update(method="standalone", status="installing")
         self.installer.save_panel(self.state)
-        with patch.object(self.installer, "check_host"), patch.object(NativeBackend, "install") as native, patch.object(self.installer, "docker") as docker:
+        with (
+            patch.object(self.installer, "check_host"),
+            patch.object(NativeBackend, "install") as native,
+            patch.object(self.installer, "docker") as docker,
+        ):
             self.installer.install_panel()
         native.assert_called_once()
         docker.assert_not_called()
 
     def test_mysql_docker_install_pulls_mysql_and_uses_mysql_dump(self):
         self.state.update(method="docker", database_engine="mysql", status="installing")
-        with patch.object(self.installer, "check_host"), patch.object(self.installer, "docker"), patch.object(self.installer, "new_panel", return_value=self.state):
+        with (
+            patch.object(self.installer, "check_host"),
+            patch.object(self.installer, "docker"),
+            patch.object(self.installer, "new_panel", return_value=self.state),
+        ):
             self.installer.install_panel()
         pulls = [args[-1] for args, _ in self.runner.calls if args[:2] == ["docker", "pull"]]
         self.assertIn("mysql:8.4", pulls)
@@ -155,7 +176,9 @@ class WizardTests(BaseTest):
             self.skipTest("Docker CLI unavailable")
         self.state["database_engine"] = "mysql"
         self.installer.save_panel(self.state)
-        result = subprocess.run(["docker", "compose", "-f", str(self.paths.compose), "config", "--format", "json"], capture_output=True, text=True)
+        result = subprocess.run(
+            ["docker", "compose", "-f", str(self.paths.compose), "config", "--format", "json"], capture_output=True, text=True
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("variable is not set", result.stderr)
         check = json.loads(result.stdout)["services"]["database"]["healthcheck"]["test"]
@@ -163,8 +186,13 @@ class WizardTests(BaseTest):
         self.assertIn("SELECT 1", check[1])
 
     def test_admin_credentials_are_supplied_via_stdin_not_argv(self):
-        self.state["admin"] = {"email": "admin@example.test", "username": "admin", "name_first": "Test",
-                               "name_last": "Admin", "root_admin": True}
+        self.state["admin"] = {
+            "email": "admin@example.test",
+            "username": "admin",
+            "name_first": "Test",
+            "name_last": "Admin",
+            "root_admin": True,
+        }
         self.installer.admin_password = "A-strong-password-123!"
         self.installer.create_admin(self.state)
         args, _ = self.runner.calls[-1]
@@ -231,7 +259,11 @@ class NativeTests(BaseTest):
         shutil.rmtree(self.backend.app)
         shutil.rmtree(self.backend.redis_data)
         self.ui.answers = [str(archive)]
-        with patch.object(NativeBackend, "dependencies"), patch.object(NativeBackend, "provision_database"), patch.object(NativeBackend, "health"):
+        with (
+            patch.object(NativeBackend, "dependencies"),
+            patch.object(NativeBackend, "provision_database"),
+            patch.object(NativeBackend, "health"),
+        ):
             self.installer.restore_panel()
         self.assertIn("original-key", (self.backend.app / ".env").read_text())
         self.assertEqual((self.backend.app / "storage/test.txt").read_text(), "preserve storage")
@@ -250,7 +282,13 @@ class NativeTests(BaseTest):
     def test_native_migrations_failure_does_not_start_workers_or_publish_panel(self):
         self.state.update(status="installing", source_installed=app.PANEL_VERSION)
         self.runner.failure = lambda args: "migrate" in args
-        with patch.object(self.backend, "dependencies"), patch.object(self.backend, "provision_database"), patch.object(self.backend, "setup_runtime"), patch.object(self.backend, "start") as start, patch.object(self.backend, "publish_site") as publish:
+        with (
+            patch.object(self.backend, "dependencies"),
+            patch.object(self.backend, "provision_database"),
+            patch.object(self.backend, "setup_runtime"),
+            patch.object(self.backend, "start") as start,
+            patch.object(self.backend, "publish_site") as publish,
+        ):
             with self.assertRaises(app.InstallerError):
                 self.backend.install()
         start.assert_not_called()
@@ -279,16 +317,26 @@ class NativeTests(BaseTest):
         sql.assert_not_called()
 
     def test_distribution_and_engine_dependency_matrix(self):
-        original = self.runner.run
-        for distro, version, codename in (("ubuntu", "22.04", "jammy"), ("ubuntu", "24.04", "noble"),
-                                           ("ubuntu", "26.04", "resolute"), ("debian", "12", "bookworm"),
-                                           ("debian", "13", "trixie")):
+        for distro, version, codename in (
+            ("ubuntu", "22.04", "jammy"),
+            ("ubuntu", "24.04", "noble"),
+            ("ubuntu", "26.04", "resolute"),
+            ("debian", "12", "bookworm"),
+            ("debian", "13", "trixie"),
+        ):
             for engine in ("mariadb", "mysql"):
                 with self.subTest(distro=distro, version=version, engine=engine):
                     self.runner.calls.clear()
                     self.state["database_engine"] = engine
                     backend = NativeBackend(self.installer, self.state)
-                    with patch.object(self.installer, "check_host", return_value={"ID": distro, "VERSION_ID": version, "VERSION_CODENAME": codename}), patch.object(self.installer, "fetch", return_value=b"-----BEGIN PGP PUBLIC KEY BLOCK-----\nfixture"), patch.object(backend, "composer"), patch.object(app.platform, "machine", return_value="x86_64"):
+                    with (
+                        patch.object(
+                            self.installer, "check_host", return_value={"ID": distro, "VERSION_ID": version, "VERSION_CODENAME": codename}
+                        ),
+                        patch.object(self.installer, "fetch", return_value=b"-----BEGIN PGP PUBLIC KEY BLOCK-----\nfixture"),
+                        patch.object(backend, "composer"),
+                        patch.object(app.platform, "machine", return_value="x86_64"),
+                    ):
                         if version == "26.04":
                             with self.assertRaisesRegex(app.InstallerError, "configured PHP"):
                                 backend.dependencies()
@@ -297,7 +345,13 @@ class NativeTests(BaseTest):
                         backend.dependencies()
                     commands = [args for args, _ in self.runner.calls]
                     self.assertTrue(any("php8.3-intl" in args for args in commands))
-                    expected = "mysql-community-server" if engine == "mysql" and distro == "debian" else "mysql-server" if engine == "mysql" else "mariadb-server"
+                    expected = (
+                        "mysql-community-server"
+                        if engine == "mysql" and distro == "debian"
+                        else "mysql-server"
+                        if engine == "mysql"
+                        else "mariadb-server"
+                    )
                     self.assertTrue(any(expected in args and args[0] == "apt-get" for args in commands))
                     if engine == "mysql" and distro == "debian":
                         self.assertIn(codename, (self.paths.root / "etc/apt/sources.list.d/ptero-mysql.list").read_text())
@@ -307,21 +361,33 @@ class NativeTests(BaseTest):
 
     def test_opposite_installed_database_engine_is_not_replaced(self):
         original = self.runner.run
+
         def existing(args, **kwargs):
             if str(args[0]) == "dpkg-query" and args[-1] == "mysql-server":
                 return 0, "install ok installed"
             return original(args, **kwargs)
-        with patch.object(self.installer, "check_host", return_value={"ID": "ubuntu", "VERSION_ID": "24.04"}), patch.object(self.runner, "run", side_effect=existing), self.assertRaises(app.InstallerError):
+
+        with (
+            patch.object(self.installer, "check_host", return_value={"ID": "ubuntu", "VERSION_ID": "24.04"}),
+            patch.object(self.runner, "run", side_effect=existing),
+            self.assertRaises(app.InstallerError),
+        ):
             self.backend.dependencies()
         self.assertFalse(any(args[0] == "apt-get" for args, _ in self.runner.calls))
 
     def test_existing_unsupported_mariadb_is_not_upgraded_implicitly(self):
         original = self.runner.run
+
         def existing(args, **kwargs):
             if str(args[0]) == "dpkg-query" and args[-1] == "mariadb-server":
                 return 0, "install ok installed|1:10.6.22-0ubuntu0.22.04.1"
             return original(args, **kwargs)
-        with patch.object(self.installer, "check_host", return_value={"ID": "ubuntu", "VERSION_ID": "22.04"}), patch.object(self.runner, "run", side_effect=existing), self.assertRaises(app.InstallerError):
+
+        with (
+            patch.object(self.installer, "check_host", return_value={"ID": "ubuntu", "VERSION_ID": "22.04"}),
+            patch.object(self.runner, "run", side_effect=existing),
+            self.assertRaises(app.InstallerError),
+        ):
             self.backend.dependencies()
         self.assertFalse(any(args[0] == "apt-get" for args, _ in self.runner.calls))
 
@@ -335,12 +401,34 @@ class NativeTests(BaseTest):
         self.state.update(url="https://panel.example.test:18443", tls=True, http_port=18080, https_port=18443)
         cert = self.backend.certdir / "live/panel.example.test"
         cert.mkdir(parents=True)
-        subprocess.run([openssl, "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-subj", "/CN=panel.example.test",
-                        "-keyout", str(cert / "privkey.pem"), "-out", str(cert / "fullchain.pem")], capture_output=True, check=True)
+        subprocess.run(
+            [
+                openssl,
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:2048",
+                "-nodes",
+                "-days",
+                "1",
+                "-subj",
+                "/CN=panel.example.test",
+                "-keyout",
+                str(cert / "privkey.pem"),
+                "-out",
+                str(cert / "fullchain.pem"),
+            ],
+            capture_output=True,
+            check=True,
+        )
         for tls, maintenance in ((False, False), (True, False), (True, True)):
             self.state["tls"] = tls
             config = prefix / "nginx.conf"
-            config.write_text(f"error_log stderr;\npid {prefix}/nginx.pid;\nevents {{}}\nhttp {{\naccess_log off;\n{self.backend.nginx_config(maintenance)}\n}}")
+            config.write_text(
+                f"error_log stderr;\npid {prefix}/nginx.pid;\nevents {{}}\n"
+                f"http {{\naccess_log off;\n{self.backend.nginx_config(maintenance)}\n"
+                f"}}"
+            )
             result = subprocess.run([nginx, "-t", "-p", str(prefix), "-c", str(config)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -353,7 +441,10 @@ class NativeTests(BaseTest):
         self.assertEqual(len(list(self.paths.backups.glob("*.tar.gz"))), 1)
 
     def test_native_update_failure_keeps_maintenance_and_recovery_backup(self):
-        with patch.object(self.backend, "source"), patch.object(self.backend, "install", side_effect=app.InstallerError("migration failed")):
+        with (
+            patch.object(self.backend, "source"),
+            patch.object(self.backend, "install", side_effect=app.InstallerError("migration failed")),
+        ):
             with self.assertRaises(app.InstallerError):
                 self.backend.update({"tag_name": "v2.0.0-beta.3"})
         self.assertEqual(self.state["status"], "updating")
@@ -363,8 +454,14 @@ class NativeTests(BaseTest):
 class DockerWingsTests(BaseTest):
     def setUp(self):
         super().setUp()
-        self.wings_state = {"schema": 1, "owner": app.PROJECT, "method": "docker", "version": app.WINGS_VERSION,
-                            "status": "pending", "image": "ghcr.io/pterodactyl/wings@sha256:" + "d" * 64}
+        self.wings_state = {
+            "schema": 1,
+            "owner": app.PROJECT,
+            "method": "docker",
+            "version": app.WINGS_VERSION,
+            "status": "pending",
+            "image": "ghcr.io/pterodactyl/wings@sha256:" + "d" * 64,
+        }
         self.backend = DockerWings(self.installer, self.wings_state)
 
     def test_wings_container_has_host_network_and_matching_game_paths(self):
@@ -396,7 +493,10 @@ class DockerWingsTests(BaseTest):
         app.atomic_write(self.paths.config, "token: original-secret\n")
         self.wings_state["status"] = "ready"
         self.backend.save()
-        with patch.object(self.backend, "start", side_effect=app.InstallerError("failed startup")), patch.object(self.installer, "pin_image", return_value="ghcr.io/pterodactyl/wings@sha256:" + "e" * 64):
+        with (
+            patch.object(self.backend, "start", side_effect=app.InstallerError("failed startup")),
+            patch.object(self.installer, "pin_image", return_value="ghcr.io/pterodactyl/wings@sha256:" + "e" * 64),
+        ):
             with self.assertRaises(app.InstallerError):
                 self.backend.update({"tag_name": "v1.13.5"})
         state = app.read_json(self.paths.wings_state)
@@ -415,7 +515,7 @@ class DockerWingsTests(BaseTest):
 class PreviewTests(BaseTest):
     def test_preview_in_all_languages_without_root_or_runtime_state(self):
         from ptero.cli import main
-        from ptero.core import Paths
+
         for language, expected in (("en", "Ready to install"), ("es", "Listo para instalar"), ("pt-BR", "Pronto para instalar")):
             with patch.object(app.os, "geteuid", return_value=1000), contextlib.redirect_stdout(io.StringIO()) as output:
                 result = main(["--language", language, "--preview", "--no-animation"])
@@ -424,7 +524,10 @@ class PreviewTests(BaseTest):
 
     def test_single_file_launcher_contains_and_runs_the_same_version(self):
         import importlib.util
-        spec = importlib.util.spec_from_file_location("build_release_test", Path(__file__).resolve().parents[1] / "scripts/build_release.py")
+
+        spec = importlib.util.spec_from_file_location(
+            "build_release_test", Path(__file__).resolve().parents[1] / "scripts/build_release.py"
+        )
         builder = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(builder)
         builder.OUTPUT = Path(self.temporary.name)

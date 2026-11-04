@@ -1,8 +1,9 @@
 """Language selection, grouped maintenance menu and process locking."""
+
 import argparse
 import fcntl
 import os
-import sys
+import time
 
 from . import __version__
 from .i18n import LANGUAGES
@@ -12,36 +13,63 @@ from .ui import UI
 def select_language(ui):
     if not ui.screen:
         ui.say("Language")
-    language = ui.choice("Which language would you like to use?", [
-        ("en", "English", ""), ("es", "Español", ""), ("pt-BR", "Português (Brasil)", "")],
-        default=list(LANGUAGES).index(ui.language))
+    language = ui.choice(
+        "Which language would you like to use?",
+        [("en", "English", ""), ("es", "Español", ""), ("pt-BR", "Português (Brasil)", "")],
+        default=list(LANGUAGES).index(ui.language),
+    )
     ui.set_language(language)
     return language
 
 
 ENTRIES = [
-    ("Install Panel and Wings", "install-all"), ("Install Panel", "install-panel"),
-    ("Install Wings", "install-wings"), ("Uninstall Panel and Wings", "uninstall-all"),
-    ("Uninstall Panel", "uninstall-panel"), ("Uninstall Wings", "uninstall-wings"),
-    ("Update Panel v2", "update-panel"), ("Update Wings", "update-wings"),
-    ("Configure / link Wings", "configure-wings"), ("Wings HTTPS certificate", "tls-wings"),
-    ("Back up Panel", "backup-panel"), ("Back up Wings configuration", "backup-wings"),
-    ("Restore Panel from backup", "restore-panel"), ("Status and diagnostics", "diagnose"),
-    ("Restart services", "restart"), ("View logs", "logs"), ("Configure SMTP", "smtp"),
-    ("Create administrator", "admin"), ("Ports and firewall", "firewall"),
+    ("Install Panel and Wings", "install-all"),
+    ("Install Panel", "install-panel"),
+    ("Install Wings", "install-wings"),
+    ("Uninstall Panel and Wings", "uninstall-all"),
+    ("Uninstall Panel", "uninstall-panel"),
+    ("Uninstall Wings", "uninstall-wings"),
+    ("Update Panel v2", "update-panel"),
+    ("Update Wings", "update-wings"),
+    ("Roll back Panel update", "rollback-panel"),
+    ("Configure / link Wings", "configure-wings"),
+    ("Wings HTTPS certificate", "tls-wings"),
+    ("Back up Panel", "backup-panel"),
+    ("Back up Wings configuration", "backup-wings"),
+    ("Restore Panel from backup", "restore-panel"),
+    ("Status and diagnostics", "diagnose"),
+    ("Restart services", "restart"),
+    ("View logs", "logs"),
+    ("Configure SMTP", "smtp"),
+    ("Create administrator", "admin"),
+    ("Ports and firewall", "firewall"),
     ("Configure game database host", "configure-database"),
     ("Show database host credentials", "database-credentials"),
     ("Create node and allocations", "create-node"),
-    ("Schedule encrypted backups", "backup-schedule"), ("Run scheduled backup now", "backup-run"),
-    ("Download remote backup", "backup-download"), ("Detailed health report", "health"),
-    ("Resume installation", "resume"), ("Install remote Wings node", "remote-node"),
+    ("Schedule encrypted backups", "backup-schedule"),
+    ("Run scheduled backup now", "backup-run"),
+    ("Download remote backup", "backup-download"),
+    ("Local backup retention", "backup-retention"),
+    ("Detailed health report", "health"),
+    ("Resume installation", "resume"),
+    ("Install remote Wings node", "remote-node"),
     ("Prepare remote game SQL", "remote-database"),
 ]
 
 
+def duration(seconds):
+    seconds = int(seconds)
+    if seconds < 60:
+        return f"{seconds}s"
+    minutes, seconds = divmod(seconds, 60)
+    return f"{minutes}m {seconds:02d}s" if minutes < 60 else f"{minutes // 60}h {minutes % 60:02d}m"
+
+
 def menu(installer):
     from .core import InstallerError, Cancelled
-    from .navigation import inventory, menu_items, prepare_action
+    from .navigation import attention, inventory, menu_items, prepare_action, status_label
+    from .ui import Literal
+
     ui = installer.ui
     while True:
         state = inventory(installer)
@@ -56,9 +84,18 @@ def menu(installer):
         else:
             print()
             ui.banner()
-            ui.card("Installation status", [ui.tr("Panel: {value}").format(value=ui.tr("Not installed" if state["panel"] == "absent" else state["panel"])),
-                    ui.tr("Wings: {value}").format(value=ui.tr("Not installed" if state["wings"] == "absent" else state["wings"])),
-                    "New machine? Start with Install Panel and Wings." if state["panel"] == "absent" else state.get("url", "")])
+            rows = []
+            for key, label in (("panel", "Panel"), ("wings", "Wings"), ("database", "Game SQL")):
+                value = ui.tr(status_label(key, state))
+                if state.get(key + "_version") and state[key] != "absent":
+                    value += " · " + state[key + "_version"]
+                rows.append(Literal(ui.tr(label) + ": " + value))
+            hint = attention(state)
+            rows.append(
+                hint
+                or ("New machine? Start with Install Panel and Wings." if state["panel"] == "absent" else Literal(state.get("url", "")))
+            )
+            ui.card("Installation status", rows)
             last_group = None
             for item in items:
                 if item.group != last_group:
@@ -87,6 +124,7 @@ def menu(installer):
         if ui.screen:
             ui.screen.begin()
         outcome = "Operation complete"
+        started = time.monotonic()
         try:
             if prepare_action(ui, action, state, lambda setup: installer.actions()[setup](), lambda: inventory(installer)):
                 installer.actions()[action]()
@@ -99,12 +137,15 @@ def menu(installer):
             outcome = "Operation needs attention"
             ui.say(installer.run.redact(str(exc)), "error")
             ui.say("The operation did not complete. Review the private installer log.", "warn")
+        if outcome != "Before you continue":
+            ui.say(ui.tr("Duration: {value}").format(value=duration(time.monotonic() - started)), "muted")
         if ui.screen:
             ui.screen.result(outcome)
 
 
 def main(argv=None):
     from .core import Installer, InstallerError
+
     parser = argparse.ArgumentParser(description="Pterodactyl Installer — multilingual Panel v2 and Wings setup for Ubuntu / Debian.")
     parser.add_argument("--language", choices=LANGUAGES, help="Skip the startup language selector")
     parser.add_argument("--no-animation", action="store_true", help="Disable terminal animations")
@@ -123,6 +164,7 @@ def main(argv=None):
                 select_language(ui)
             if args.preview:
                 from .preview import show
+
                 show(ui, args.action)
                 return 0
             if os.geteuid() != 0:
@@ -140,14 +182,18 @@ def main(argv=None):
                 readonly = {"diagnose", "health", "firewall", "logs", "database-credentials", "backup-download"}
                 if args.action not in readonly and (installer.p.base / "backup-profile.json").exists():
                     from .navigation import inventory
+
                     if inventory(installer)["backup_profile"] == "ready":
                         from .backups import ScheduledBackups
+
                         ScheduledBackups(installer).migrate()
                 if args.action:
                     from .navigation import inventory, prepare_action
+
                     ui.banner()
-                    ready = prepare_action(ui, args.action, inventory(installer),
-                                           lambda setup: installer.actions()[setup](), lambda: inventory(installer))
+                    ready = prepare_action(
+                        ui, args.action, inventory(installer), lambda setup: installer.actions()[setup](), lambda: inventory(installer)
+                    )
                     if ready:
                         installer.actions()[args.action]()
                     if ui.screen:

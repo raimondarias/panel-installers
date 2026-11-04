@@ -1,0 +1,56 @@
+name: Release
+# Publishes ptero/__init__.py's version as a GitHub Release the first time it
+# reaches main. The online bootstrap downloads its runtime from these assets.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    timeout-minutes: 20
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Detect unpublished version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(python3 -c 'import re,pathlib;print(re.search(r"__version__ = \"([^\"]+)\"", pathlib.Path("ptero/__init__.py").read_text())[1])')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "v$version is already published."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install test clients
+        if: steps.version.outputs.publish == 'true'
+        run: |
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y shellcheck nginx mariadb-server php-cli restic
+          python3 -m pip install --user --break-system-packages ruff==0.8.6
+      - name: Lint and regression tests
+        if: steps.version.outputs.publish == 'true'
+        run: |
+          bash tests/run.sh
+      - name: Build release assets
+        if: steps.version.outputs.publish == 'true'
+        run: |
+          python3 scripts/build_language_packs.py dist
+          python3 scripts/release_notes.py "${{ steps.version.outputs.version }}" > dist-notes.md
+          (cd dist && sha256sum --check SHA256SUMS)
+      - name: Publish GitHub Release
+        if: steps.version.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" dist/* --target "$GITHUB_SHA" \
+            --title "Pterodactyl Installer $VERSION" --notes-file dist-notes.md --latest
