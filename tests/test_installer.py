@@ -20,10 +20,13 @@ import installer as app
 
 
 def node_payload():
-    return {"uuid": "3d8dd7f9-07a1-4d65-8db0-8c8921f2f4f7", "token_id": "abcdefgh12345678",
-            "token": "valid-node-token", "api": {"host": "0.0.0.0", "port": 8080,
-            "ssl": {"enabled": False, "cert": "", "key": ""}, "upload_limit": 100},
-            "system": {"sftp": {"bind_port": 2022}}}
+    return {
+        "uuid": "3d8dd7f9-07a1-4d65-8db0-8c8921f2f4f7",
+        "token_id": "abcdefgh12345678",
+        "token": "valid-node-token",
+        "api": {"host": "0.0.0.0", "port": 8080, "ssl": {"enabled": False, "cert": "", "key": ""}, "upload_limit": 100},
+        "system": {"sftp": {"bind_port": 2022}},
+    }
 
 
 class QuietUI(app.UI):
@@ -99,7 +102,7 @@ class FakeRunner:
             if self.import_failure:
                 raise app.InstallerError("importación fallida")
         if "compose" in args and "--file" in args:
-            tail = args[args.index("--file") + 2:]
+            tail = args[args.index("--file") + 2 :]
             if tail and tail[0] == "stop":
                 self.running.difference_update(tail[1:])
             elif tail and tail[0] == "down":
@@ -117,10 +120,21 @@ class BaseTest(unittest.TestCase):
         self.ui = QuietUI()
         self.runner = FakeRunner()
         self.installer = app.Installer(self.paths, self.ui, self.runner)
-        self.state = {"schema": 1, "owner": app.PROJECT, "status": "ready", "version": app.PANEL_VERSION,
-                      "url": "http://panel.example.test:18080", "email": "admin@example.test", "timezone": "UTC",
-                      "bind": "127.0.0.1", "http_port": 18080, "https_port": 443, "tls": False,
-                      "db_password": "b" * 64, "admin_created": True}
+        self.state = {
+            "schema": 1,
+            "owner": app.PROJECT,
+            "status": "ready",
+            "version": app.PANEL_VERSION,
+            "url": "http://panel.example.test:18080",
+            "email": "admin@example.test",
+            "timezone": "UTC",
+            "bind": "127.0.0.1",
+            "http_port": 18080,
+            "https_port": 443,
+            "tls": False,
+            "db_password": "b" * 64,
+            "admin_created": True,
+        }
 
     def panel(self):
         self.installer.save_panel(self.state)
@@ -132,14 +146,13 @@ class BaseTest(unittest.TestCase):
         (self.paths.data / "redis/dump.rdb").write_bytes(b"redis-snapshot")
 
     def wings(self):
-        app.write_json(self.paths.wings_state, {"schema": 1, "owner": app.PROJECT,
-                                                "version": app.WINGS_VERSION, "status": "ready"})
+        app.write_json(self.paths.wings_state, {"schema": 1, "owner": app.PROJECT, "version": app.WINGS_VERSION, "status": "ready"})
         app.atomic_write(self.paths.wings, "old binary", 0o755)
         app.atomic_write(self.paths.config, "token: node-secret\n")
         app.atomic_write(self.paths.service, self.installer.service_text(), 0o644)
 
     def tails(self):
-        return [args[args.index("--file") + 2:] for args, _ in self.runner.calls if "--file" in args]
+        return [args[args.index("--file") + 2 :] for args, _ in self.runner.calls if "--file" in args]
 
 
 class ValidationTests(BaseTest):
@@ -153,8 +166,15 @@ class ValidationTests(BaseTest):
     def test_urls(self):
         for value in ("https://panel.example.test", "http://127.0.0.1:8080", "https://[::1]"):
             self.assertTrue(app.valid_url(value), value)
-        for value in ("file:///etc/passwd", "https://user:pass@host.test", "https://x.test/path",
-                      "https://x.test?a=b", "https://x.test#frag", "https://x.test:99999", "https://bad host"):
+        for value in (
+            "file:///etc/passwd",
+            "https://user:pass@host.test",
+            "https://x.test/path",
+            "https://x.test?a=b",
+            "https://x.test#frag",
+            "https://x.test:99999",
+            "https://bad host",
+        ):
             self.assertFalse(app.valid_url(value), value)
 
     def test_domains(self):
@@ -191,7 +211,11 @@ class ValidationTests(BaseTest):
     def test_supported_host_detection(self):
         app.atomic_write(self.paths.root / "etc/os-release", 'ID=ubuntu\nVERSION_ID="24.04"\nVERSION_CODENAME=noble\n')
         (self.paths.root / "run/systemd/system").mkdir(parents=True)
-        with patch.object(app.os, "geteuid", return_value=0), patch.object(app.platform, "machine", return_value="x86_64"), patch.object(app.shutil, "disk_usage", return_value=shutil._ntuple_diskusage(10**12, 0, 10**12)):
+        with (
+            patch.object(app.os, "geteuid", return_value=0),
+            patch.object(app.platform, "machine", return_value="x86_64"),
+            patch.object(app.shutil, "disk_usage", return_value=shutil._ntuple_diskusage(10**12, 0, 10**12)),
+        ):
             self.assertEqual(self.installer.check_host()["ID"], "ubuntu")
             app.atomic_write(self.paths.root / "etc/os-release", 'ID=ubuntu\nVERSION_ID="20.04"\n')
             with self.assertRaises(app.InstallerError):
@@ -212,8 +236,7 @@ class ComposeTests(BaseTest):
     def test_interpolation_escapes_smtp_dollars(self):
         self.state["mail_password"] = 'a$pass${HOME}$$"\\secret'
         config = self.installer.compose_config(self.state)
-        self.assertEqual(config["services"]["panel"]["environment"]["MAIL_PASSWORD"],
-                         'a$$pass$${HOME}$$$$"\\secret')
+        self.assertEqual(config["services"]["panel"]["environment"]["MAIL_PASSWORD"], 'a$$pass$${HOME}$$$$"\\secret')
 
     def test_http_does_not_bind_https(self):
         config = self.installer.compose_config(self.state)
@@ -239,21 +262,21 @@ class ComposeTests(BaseTest):
 
 class ReleaseTests(BaseTest):
     def test_auto_never_selects_panel_v1(self):
-        releases = [{"tag_name": "v1.99.0", "prerelease": False, "draft": False},
-                    {"tag_name": "v2.0.0-beta.2", "prerelease": True, "draft": False},
-                    {"tag_name": "v2.0.0-beta.10", "prerelease": True, "draft": False}]
+        releases = [
+            {"tag_name": "v1.99.0", "prerelease": False, "draft": False},
+            {"tag_name": "v2.0.0-beta.2", "prerelease": True, "draft": False},
+            {"tag_name": "v2.0.0-beta.10", "prerelease": True, "draft": False},
+        ]
         with patch.object(self.installer, "fetch", return_value=json.dumps(releases).encode()):
             self.assertEqual(self.installer.release("panel", "auto")["tag_name"], "v2.0.0-beta.10")
 
     def test_stable_beats_beta_with_same_version(self):
-        releases = [{"tag_name": tag, "draft": False, "prerelease": "-" in tag}
-                    for tag in ("v2.0.0-beta.99", "v2.0.0-rc.1", "v2.0.0")]
+        releases = [{"tag_name": tag, "draft": False, "prerelease": "-" in tag} for tag in ("v2.0.0-beta.99", "v2.0.0-rc.1", "v2.0.0")]
         with patch.object(self.installer, "fetch", return_value=json.dumps(releases).encode()):
             self.assertEqual(self.installer.release("panel", "auto")["tag_name"], "v2.0.0")
 
     def test_wings_auto_excludes_prereleases(self):
-        releases = [{"tag_name": tag, "draft": False, "prerelease": "-" in tag}
-                    for tag in ("v1.14.0-beta.1", "v1.13.4")]
+        releases = [{"tag_name": tag, "draft": False, "prerelease": "-" in tag} for tag in ("v1.14.0-beta.1", "v1.13.4")]
         with patch.object(self.installer, "fetch", return_value=json.dumps(releases).encode()):
             self.assertEqual(self.installer.release("wings", "auto")["tag_name"], "v1.13.4")
 
@@ -265,19 +288,31 @@ class ReleaseTests(BaseTest):
 
     def test_wings_sha256_verified_before_execution(self):
         blob = b"test binary"
-        asset = {"name": "wings_linux_amd64", "digest": "sha256:" + hashlib.sha256(blob).hexdigest(),
-                 "browser_download_url": "https://github.com/pterodactyl/wings/releases/download/v1.13.4/wings_linux_amd64"}
+        asset = {
+            "name": "wings_linux_amd64",
+            "digest": "sha256:" + hashlib.sha256(blob).hexdigest(),
+            "browser_download_url": "https://github.com/pterodactyl/wings/releases/download/v1.13.4/wings_linux_amd64",
+        }
         release = {"tag_name": "v1.13.4", "assets": [asset]}
         target = self.paths.wings
-        with patch.object(app.platform, "machine", return_value="x86_64"), patch.object(app.urllib.request, "urlopen", return_value=io.BytesIO(blob)):
+        with (
+            patch.object(app.platform, "machine", return_value="x86_64"),
+            patch.object(app.urllib.request, "urlopen", return_value=io.BytesIO(blob)),
+        ):
             self.installer.download_wings(release, target)
         self.assertEqual(target.read_bytes(), blob)
         self.assertTrue(any(args == [str(target), "version"] for args, _ in self.runner.calls))
 
     def test_corrupt_wings_is_deleted_and_not_executed(self):
-        asset = {"name": "wings_linux_amd64", "digest": "sha256:" + "0" * 64,
-                 "browser_download_url": "https://github.com/pterodactyl/wings/releases/download/v1.13.4/wings_linux_amd64"}
-        with patch.object(app.platform, "machine", return_value="x86_64"), patch.object(app.urllib.request, "urlopen", return_value=io.BytesIO(b"corrupt")):
+        asset = {
+            "name": "wings_linux_amd64",
+            "digest": "sha256:" + "0" * 64,
+            "browser_download_url": "https://github.com/pterodactyl/wings/releases/download/v1.13.4/wings_linux_amd64",
+        }
+        with (
+            patch.object(app.platform, "machine", return_value="x86_64"),
+            patch.object(app.urllib.request, "urlopen", return_value=io.BytesIO(b"corrupt")),
+        ):
             with self.assertRaises(app.InstallerError):
                 self.installer.download_wings({"tag_name": "v1.13.4", "assets": [asset]}, self.paths.wings)
         self.assertFalse(self.paths.wings.exists())
@@ -291,7 +326,11 @@ class ReleaseTests(BaseTest):
 class InstallTests(BaseTest):
     def test_panel_migrations_before_first_web_start(self):
         self.state.update(status="installing", admin_created=False)
-        with patch.object(self.installer, "check_host"), patch.object(self.installer, "docker"), patch.object(self.installer, "new_panel", return_value=self.state):
+        with (
+            patch.object(self.installer, "check_host"),
+            patch.object(self.installer, "docker"),
+            patch.object(self.installer, "new_panel", return_value=self.state),
+        ):
             self.installer.install_panel()
         tails = self.tails()
         migration = next(i for i, args in enumerate(tails) if "migrate" in args)
@@ -305,7 +344,11 @@ class InstallTests(BaseTest):
     def test_migration_failure_keeps_state_resumable_without_serving_panel(self):
         self.state.update(status="installing", admin_created=False)
         self.runner.failure = lambda args: "migrate" in args
-        with patch.object(self.installer, "check_host"), patch.object(self.installer, "docker"), patch.object(self.installer, "new_panel", return_value=self.state):
+        with (
+            patch.object(self.installer, "check_host"),
+            patch.object(self.installer, "docker"),
+            patch.object(self.installer, "new_panel", return_value=self.state),
+        ):
             with self.assertRaises(app.InstallerError):
                 self.installer.install_panel()
         self.assertEqual(self.installer.panel_state()["status"], "installing")
@@ -331,9 +374,16 @@ class InstallTests(BaseTest):
 
     def test_wings_install_without_node_remains_pending(self):
         self.ui.choices = [False]
+
         def download(release, target):
             app.atomic_write(target, "verified binary", 0o755)
-        with patch.object(self.installer, "check_host"), patch.object(self.installer, "docker"), patch.object(self.installer, "choose_release", return_value={"tag_name": app.WINGS_VERSION}), patch.object(self.installer, "download_wings", side_effect=download):
+
+        with (
+            patch.object(self.installer, "check_host"),
+            patch.object(self.installer, "docker"),
+            patch.object(self.installer, "choose_release", return_value={"tag_name": app.WINGS_VERSION}),
+            patch.object(self.installer, "download_wings", side_effect=download),
+        ):
             self.installer.install_wings()
         self.assertEqual(self.installer.load(self.paths.wings_state)["status"], "pending")
         self.assertFalse(any("enable" in args and "wings" in args for args, _ in self.runner.calls))
@@ -491,9 +541,15 @@ class MaintenanceTests(BaseTest):
 
     def test_wings_update_rolls_back_binary_if_start_fails(self):
         self.wings()
+
         def download(release, path):
             app.atomic_write(path, "new binary", 0o755)
-        with patch.object(self.installer, "choose_release", return_value={"tag_name": "v1.13.5"}), patch.object(self.installer, "download_wings", side_effect=download), patch.object(self.installer, "start_wings", side_effect=app.InstallerError("bad binary")):
+
+        with (
+            patch.object(self.installer, "choose_release", return_value={"tag_name": "v1.13.5"}),
+            patch.object(self.installer, "download_wings", side_effect=download),
+            patch.object(self.installer, "start_wings", side_effect=app.InstallerError("bad binary")),
+        ):
             with self.assertRaises(app.InstallerError):
                 self.installer.update_wings()
         self.assertEqual(self.paths.wings.read_text(), "old binary")
@@ -549,7 +605,11 @@ class MaintenanceTests(BaseTest):
         self.wings()
         self.ui.answers = ["https://panel.example.test", "1", "secret-auto-deploy"]
         before = self.paths.config.read_bytes()
-        with patch.object(self.installer, "docker"), patch.object(app.urllib.request.OpenerDirector, "open", side_effect=app.urllib.error.URLError("denied")), self.assertRaises(app.InstallerError):
+        with (
+            patch.object(self.installer, "docker"),
+            patch.object(app.urllib.request.OpenerDirector, "open", side_effect=app.urllib.error.URLError("denied")),
+            self.assertRaises(app.InstallerError),
+        ):
             self.installer.configure_wings()
         self.assertEqual(self.paths.config.read_bytes(), before)
         self.assertFalse((self.paths.config_dir / ".config-installer.yml").exists())
@@ -558,7 +618,13 @@ class MaintenanceTests(BaseTest):
         self.wings()
         self.ui.answers = ["https://panel.example.test", "1", "secret-auto-deploy"]
         self.ui.choices = [False]
-        with patch.object(self.installer, "docker"), patch.object(self.installer, "start_wings"), patch.object(app.urllib.request.OpenerDirector, "open", return_value=io.BytesIO(json.dumps(node_payload()).encode())) as request:
+        with (
+            patch.object(self.installer, "docker"),
+            patch.object(self.installer, "start_wings"),
+            patch.object(
+                app.urllib.request.OpenerDirector, "open", return_value=io.BytesIO(json.dumps(node_payload()).encode())
+            ) as request,
+        ):
             self.installer.configure_wings()
         self.assertNotIn("secret-auto-deploy", repr(self.runner.calls))
         self.assertNotIn("secret-auto-deploy", self.paths.wings_state.read_text())
@@ -589,8 +655,14 @@ class InteractionTests(BaseTest):
         with patch("builtins.input", side_effect=["invalid", "0"]), contextlib.redirect_stdout(stream):
             self.installer.menu()
         text = stream.getvalue()
-        for expected in ("Install Panel and Wings", "Install Panel", "Install Wings",
-                         "Uninstall Panel and Wings", "Uninstall Panel", "Uninstall Wings"):
+        for expected in (
+            "Install Panel and Wings",
+            "Install Panel",
+            "Install Wings",
+            "Uninstall Panel and Wings",
+            "Uninstall Panel",
+            "Uninstall Wings",
+        ):
             self.assertIn(expected, text)
         self.assertEqual(self.runner.calls, [])
 
@@ -604,8 +676,9 @@ class InteractionTests(BaseTest):
             env = {**os.environ, "TERM": "xterm"}
             env.pop("NO_COLOR", None)
             code = "import time; from installer import UI; ui=UI();\nwith ui.busy('prueba animada'): time.sleep(0.3)\n"
-            result = subprocess.run([sys.executable, "-c", code], stdout=slave, stderr=slave,
-                                    env=env, cwd=Path(app.__file__).parent, timeout=5)
+            result = subprocess.run(
+                [sys.executable, "-c", code], stdout=slave, stderr=slave, env=env, cwd=Path(app.__file__).parent, timeout=5
+            )
             os.close(slave)
             slave = None
             output = b""

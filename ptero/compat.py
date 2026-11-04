@@ -3,6 +3,7 @@
 Hard rules block combinations that cannot work. Pairs outside the deployment
 matrix this installer has validated are allowed after an explicit warning.
 """
+
 from .common import PANEL_VERSION, WINGS_VERSION, Cancelled, InstallerError, valid_version, version_key
 
 # Panel major version -> (required Wings major version, oldest Wings release supported).
@@ -19,7 +20,8 @@ def problem(panel, wings):
     wings_major, oldest = REQUIREMENTS[version_key(panel)[0]]
     if version_key(wings)[0] != wings_major or version_key(wings) < version_key(oldest):
         return "Panel {panel} requires Wings {oldest} or newer within Wings {major}.x; this node has Wings {wings}.".format(
-            panel=panel, oldest=oldest, major=wings_major, wings=wings)
+            panel=panel, oldest=oldest, major=wings_major, wings=wings
+        )
     return ""
 
 
@@ -47,9 +49,13 @@ def check(installer, panel=None, wings=None):
         raise InstallerError(blocking)
     if (panel, wings) in VALIDATED:
         return
-    ui.card("Untested Panel and Wings combination", [
-        ui.tr("Panel {panel} with Wings {wings}").format(panel=panel, wings=wings),
-        ui.tr("Validated combination: Panel {panel} with Wings {wings}").format(panel=PANEL_VERSION, wings=WINGS_VERSION),
-        "Both releases are compatible by version, but this installer has not tested them together."])
+    ui.card(
+        "Untested Panel and Wings combination",
+        [
+            ui.tr("Panel {panel} with Wings {wings}").format(panel=panel, wings=wings),
+            ui.tr("Validated combination: Panel {panel} with Wings {wings}").format(panel=PANEL_VERSION, wings=WINGS_VERSION),
+            "Both releases are compatible by version, but this installer has not tested them together.",
+        ],
+    )
     if not ui.yes("Continue with this combination?", True):
         raise Cancelled("Operation cancelled.")

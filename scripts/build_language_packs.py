@@ -10,6 +10,7 @@ Output (default ``dist/``), published as GitHub Release assets by CI:
 
 Rebuilding unchanged sources produces byte-identical archives.
 """
+
 import gzip
 import hashlib
 import io
@@ -52,20 +53,27 @@ def build(output=None):
     output.mkdir(parents=True, exist_ok=True)
     current = version()
     catalogue = json.loads((ROOT / "ptero/locales/messages.json").read_text())
-    locales = {language: encoded({source: {language: translations[language]}
-                                 for source, translations in catalogue.items()}) for language in LANGUAGES}
+    locales = {
+        language: encoded({source: {language: translations[language]} for source, translations in catalogue.items()})
+        for language in LANGUAGES
+    }
     hashes = {language: hashlib.sha256(data).hexdigest() for language, data in locales.items()}
-    files = {str(path.relative_to(ROOT)): path.read_bytes() for path in (ROOT / "ptero").rglob("*")
-             if path.is_file() and "__pycache__" not in path.parts and path.suffix in (".py", ".json")
-             and path.name not in ("messages.json", "distribution.json")}
+    files = {
+        str(path.relative_to(ROOT)): path.read_bytes()
+        for path in (ROOT / "ptero").rglob("*")
+        if path.is_file()
+        and "__pycache__" not in path.parts
+        and path.suffix in (".py", ".json")
+        and path.name not in ("messages.json", "distribution.json")
+    }
     for name in ("installer.py", "scripts/run_local.sh", "LICENSE"):
         files[name] = (ROOT / name).read_bytes()
     assets = {"install.sh": (ROOT / "install.sh").read_bytes()}
     for language in LANGUAGES:
-        metadata = {"schema": 1, "repository": REPOSITORY, "language": language, "version": current,
-                    "locale_sha256": hashes}
-        assets[f"installer-{language}.tar.gz"] = archive({**files, "ptero/locales/messages.json": locales[language],
-                                                          "ptero/distribution.json": encoded(metadata)})
+        metadata = {"schema": 1, "repository": REPOSITORY, "language": language, "version": current, "locale_sha256": hashes}
+        assets[f"installer-{language}.tar.gz"] = archive(
+            {**files, "ptero/locales/messages.json": locales[language], "ptero/distribution.json": encoded(metadata)}
+        )
         assets[f"messages-{language}.json"] = locales[language]
     for name, data in assets.items():
         (output / name).write_bytes(data)

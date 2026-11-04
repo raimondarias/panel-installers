@@ -1,4 +1,5 @@
 """Persisted installation checkpoints; completed work is skipped only after validation."""
+
 from datetime import datetime, timezone
 from .core import InstallerError
 
@@ -17,8 +18,7 @@ class Phases:
                     return
             except (OSError, ValueError, InstallerError):
                 pass
-        phase = {'status': 'running', 'version': self.state.get('version'),
-                 'started': datetime.now(timezone.utc).isoformat()}
+        phase = {'status': 'running', 'version': self.state.get('version'), 'started': datetime.now(timezone.utc).isoformat()}
         phases[name] = phase
         self.save()
         try:

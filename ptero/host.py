@@ -1,4 +1,5 @@
 """Host checks, Docker runtime, official releases and image pinning."""
+
 import datetime as dt
 import ipaddress
 import json
@@ -64,12 +65,14 @@ class HostMixin:
             codename = release.get("VERSION_CODENAME", "")
             if not re.fullmatch(r"[a-z]+", codename):
                 raise InstallerError("Unable to detect the APT distribution codename.")
-            source = (f"deb [arch={arch} signed-by={key}] https://download.docker.com/linux/{distro} "
-                      f"{codename} stable\n")
+            source = f"deb [arch={arch} signed-by={key}] https://download.docker.com/linux/{distro} " f"{codename} stable\n"
             atomic_write(self.p.root / "etc/apt/sources.list.d/ptero-docker.list", source, 0o644)
             self.run.run(["apt-get", "update"], label="Checking the Docker repository")
-            packages = ["docker-compose-plugin"] if installed else [
-                "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"]
+            packages = (
+                ["docker-compose-plugin"]
+                if installed
+                else ["docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"]
+            )
             self.run.run(["apt-get", "install", "-y", *packages], label="Installing Docker and Compose")
         self.run.run(["systemctl", "enable", "--now", "docker"], label="Starting Docker")
         self.run.run(["docker", "info"], label="Checking Docker")
@@ -96,9 +99,11 @@ class HostMixin:
         if version == "auto":
             with self.ui.busy("Checking official releases"):
                 releases = json.loads(self.fetch(base + "?per_page=100"))
-            candidates = [item for item in releases if not item["draft"]
-                          and valid_version(item["tag_name"], component)
-                          and (component != "wings" or not item["prerelease"])]
+            candidates = [
+                item
+                for item in releases
+                if not item["draft"] and valid_version(item["tag_name"], component) and (component != "wings" or not item["prerelease"])
+            ]
             if not candidates:
                 raise InstallerError(f"No compatible official releases found for {component}.")
             release = max(candidates, key=lambda item: version_key(item["tag_name"]))
@@ -112,8 +117,9 @@ class HostMixin:
         return release
 
     def choose_release(self, component, default):
-        version = self.ui.ask(f"{component} version (auto finds the latest compatible release)", default,
-                              lambda x: x == "auto" or valid_version(x, component))
+        version = self.ui.ask(
+            f"{component} version (auto finds the latest compatible release)", default, lambda x: x == "auto" or valid_version(x, component)
+        )
         release = self.release(component, version)
         self.ui.say(f"Selected release: {release['tag_name']}")
         if release["prerelease"] and not self.ui.yes("This is a prerelease. Continue?"):

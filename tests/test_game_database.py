@@ -1,4 +1,5 @@
 """Game SQL lifecycle, registration boundaries and real isolated MariaDB checks."""
+
 import json
 import contextlib
 import io
@@ -27,9 +28,23 @@ class DatabaseRunner(FakeRunner):
         code, output = super().run(args, **kwargs)
         args = list(map(str, args))
         if args[:3] == ["docker", "network", "inspect"]:
-            return (0, json.dumps([{"Driver": "bridge", "Labels": {OWNER_LABEL: self.label},
-                                  "Options": {"com.docker.network.bridge.name": "ptero-db0"},
-                                  "IPAM": {"Config": [{"Gateway": self.gateway, "Subnet": "172.25.0.0/16"}]}}])) if self.network_exists else (1, "")
+            return (
+                (
+                    0,
+                    json.dumps(
+                        [
+                            {
+                                "Driver": "bridge",
+                                "Labels": {OWNER_LABEL: self.label},
+                                "Options": {"com.docker.network.bridge.name": "ptero-db0"},
+                                "IPAM": {"Config": [{"Gateway": self.gateway, "Subnet": "172.25.0.0/16"}]},
+                            }
+                        ]
+                    ),
+                )
+                if self.network_exists
+                else (1, "")
+            )
         if args[:3] == ["docker", "network", "create"]:
             self.network_exists = True
         if "Registering the game database host" in kwargs.get("label", ""):
@@ -53,8 +68,16 @@ class GameDatabaseTests(BaseTest):
         self.installer.run = self.runner
         self.host = GameDatabase(self.installer)
         self.state.update(method="standalone", database_engine="mariadb")
-        self.settings = {"mode": "local", "engine": "mariadb", "name": "Node games", "port": 3307,
-                         "username": "ptero_games", "password": "a" * 64, "node_id": None, "registered": False}
+        self.settings = {
+            "mode": "local",
+            "engine": "mariadb",
+            "name": "Node games",
+            "port": 3307,
+            "username": "ptero_games",
+            "password": "a" * 64,
+            "node_id": None,
+            "registered": False,
+        }
         self.state["game_database"] = self.settings
         self.installer.save_panel(self.state)
 
@@ -106,7 +129,9 @@ class GameDatabaseTests(BaseTest):
                 config = json.loads(self.host.compose.read_text())
                 self.assertEqual(config["services"]["database"]["ports"], ["172.25.0.1:3307:3306"])
                 self.assertNotIn(str(self.paths.data), json.dumps(config))
-                registration = [(args, kw) for args, kw in self.runner.calls if "Registering the game database host" in kw.get("label", "")][-1]
+                registration = [
+                    (args, kw) for args, kw in self.runner.calls if "Registering the game database host" in kw.get("label", "")
+                ][-1]
                 self.assertEqual(registration[0][0], "runuser" if method == "standalone" else "docker")
                 self.assertNotIn(self.settings["password"], repr(registration[0]))
                 self.assertEqual(json.loads(self.runner.restored)["password"], self.settings["password"])
@@ -124,11 +149,13 @@ class GameDatabaseTests(BaseTest):
     def test_sql_credentials_use_private_stdin_after_readiness_and_before_supervision(self):
         captured = []
         original = self.runner.run
+
         def command(args, **kwargs):
             if kwargs.get('label') == 'Preparing the game SQL provisioning account':
                 captured.append((list(args), kwargs['input_file'].read().decode()))
                 kwargs['input_file'].seek(0)
             return original(args, **kwargs)
+
         with patch.object(self.runner, 'run', side_effect=command):
             self.setup_local()
         args, sql = captured[0]
@@ -237,11 +264,18 @@ class GameDatabaseTests(BaseTest):
         if not shutil.which("docker"):
             self.skipTest("Docker CLI unavailable")
         for engine in ("mysql", "mariadb"):
-            state = {**self.settings, "engine": engine, "host": "172.25.0.1", "image": engine + ":8.4",
-                     "root_password": "password$with${variables}"}
+            state = {
+                **self.settings,
+                "engine": engine,
+                "host": "172.25.0.1",
+                "image": engine + ":8.4",
+                "root_password": "password$with${variables}",
+            }
             self.host.base.mkdir(parents=True, exist_ok=True)
             self.host.compose.write_text(json.dumps(self.host.config(state)))
-            result = subprocess.run(["docker", "compose", "-f", str(self.host.compose), "config", "--format", "json"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["docker", "compose", "-f", str(self.host.compose), "config", "--format", "json"], capture_output=True, text=True
+            )
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertNotIn("variable is not set", result.stderr)
             service = json.loads(result.stdout)["services"]["database"]
@@ -317,14 +351,26 @@ class RealSQLTests(BaseTest):
         with tempfile.TemporaryDirectory(prefix="ptero-sql-") as directory:
             base = Path(directory)
             data, socket = base / "data", base / "mysql.sock"
-            args = [binaries["mariadb-install-db"], "--no-defaults", "--datadir=" + str(data),
-                    "--auth-root-authentication-method=normal", "--skip-test-db"]
+            args = [
+                binaries["mariadb-install-db"],
+                "--no-defaults",
+                "--datadir=" + str(data),
+                "--auth-root-authentication-method=normal",
+                "--skip-test-db",
+            ]
             if os.geteuid() == 0:
                 args += ["--user=root"]
             result = subprocess.run(args, capture_output=True, text=True, timeout=60)
             self.assertEqual(result.returncode, 0, result.stderr)
-            server_args = [binaries["mariadbd"], "--no-defaults", "--datadir=" + str(data), "--socket=" + str(socket),
-                           "--skip-networking", "--pid-file=" + str(base / "server.pid"), "--log-error=" + str(base / "server.log")]
+            server_args = [
+                binaries["mariadbd"],
+                "--no-defaults",
+                "--datadir=" + str(data),
+                "--socket=" + str(socket),
+                "--skip-networking",
+                "--pid-file=" + str(base / "server.pid"),
+                "--log-error=" + str(base / "server.log"),
+            ]
             if os.geteuid() == 0:
                 server_args += ["--user=root"]
             with (base / "process.log").open("w") as log:
@@ -335,7 +381,10 @@ class RealSQLTests(BaseTest):
                         if process.poll() is not None:
                             self.fail((base / "server.log").read_text())
                         if socket.exists():
-                            result = subprocess.run([binaries["mariadb"], "--no-defaults", "--socket=" + str(socket), "--user=root", "--execute=SELECT 1"], capture_output=True)
+                            result = subprocess.run(
+                                [binaries["mariadb"], "--no-defaults", "--socket=" + str(socket), "--user=root", "--execute=SELECT 1"],
+                                capture_output=True,
+                            )
                             if result.returncode == 0:
                                 break
                         time.sleep(0.05)
@@ -347,15 +396,36 @@ class RealSQLTests(BaseTest):
                     command = [binaries["mariadb"], "--no-defaults", "--socket=" + str(socket), "--batch"]
                     result = subprocess.run([*command, "--user=root"], input=host.init_sql(settings), text=True, capture_output=True)
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    sql = ("CREATE DATABASE s1_example; CREATE USER 'u1_test'@'%' IDENTIFIED BY 'Game-pass-123!';"
-                           "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,ALTER,REFERENCES,INDEX,LOCK TABLES,CREATE ROUTINE,ALTER ROUTINE,EXECUTE,CREATE TEMPORARY TABLES,CREATE VIEW,SHOW VIEW,EVENT,TRIGGER ON s1_example.* TO 'u1_test'@'%';"
-                           "FLUSH PRIVILEGES; CREATE TABLE s1_example.test (id INT); INSERT INTO s1_example.test VALUES (42);")
-                    result = subprocess.run([*command, "--user=ptero_games"], input=sql, env={**os.environ, "MYSQL_PWD": password}, text=True, capture_output=True)
+                    sql = (
+                        "CREATE DATABASE s1_example; CREATE USER 'u1_test'@'%' IDENTIFIED BY 'Game-pass-123!';"
+                        "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,ALTER,REFERENCES,INDEX,LOCK TABLES,CREATE ROUTINE,ALTER "
+                        "ROUTINE,EXECUTE,CREATE TEMPORARY TABLES,CREATE VIEW,SHOW VIEW,EVENT,TRIGGER ON s1_example.* "
+                        "TO 'u1_test'@'%';"
+                        "FLUSH PRIVILEGES; CREATE TABLE s1_example.test (id INT); INSERT INTO s1_example.test VALUES (42);"
+                    )
+                    result = subprocess.run(
+                        [*command, "--user=ptero_games"],
+                        input=sql,
+                        env={**os.environ, "MYSQL_PWD": password},
+                        text=True,
+                        capture_output=True,
+                    )
                     self.assertEqual(result.returncode, 0, result.stderr)
-                    result = subprocess.run([*command, "--user=u1_test", "--execute=SELECT id FROM s1_example.test"], env={**os.environ, "MYSQL_PWD": "Game-pass-123!"}, text=True, capture_output=True)
+                    result = subprocess.run(
+                        [*command, "--user=u1_test", "--execute=SELECT id FROM s1_example.test"],
+                        env={**os.environ, "MYSQL_PWD": "Game-pass-123!"},
+                        text=True,
+                        capture_output=True,
+                    )
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertIn("42", result.stdout)
-                    result = subprocess.run([*command, "--user=ptero_games"], input="DROP DATABASE s1_example; DROP USER 'u1_test'@'%';", env={**os.environ, "MYSQL_PWD": password}, text=True, capture_output=True)
+                    result = subprocess.run(
+                        [*command, "--user=ptero_games"],
+                        input="DROP DATABASE s1_example; DROP USER 'u1_test'@'%';",
+                        env={**os.environ, "MYSQL_PWD": password},
+                        text=True,
+                        capture_output=True,
+                    )
                     self.assertEqual(result.returncode, 0, result.stderr)
                 finally:
                     process.terminate()

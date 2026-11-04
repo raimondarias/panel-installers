@@ -5,6 +5,7 @@ A rollback restores that backup's SQL and version-specific files together with
 the matching previous release, so code and schema always stay compatible.
 Application keys, credentials and current settings (SMTP, URL) are retained.
 """
+
 import json
 import os
 from pathlib import Path
@@ -30,6 +31,7 @@ def available(state):
 def inspect(installer, state):
     """Verify the recovery backup and return (archive, saved_state) without extracting it."""
     from .backups import panel_archive, verified
+
     path = state.get("recovery_backup")
     if not isinstance(path, str) or not path:
         raise InstallerError(NO_POINT)
@@ -64,21 +66,21 @@ def inspect(installer, state):
 def application_keys(path):
     """APP_KEY and HASHIDS_SALT lines of a .env file, for an equality check."""
     try:
-        return sorted(line for line in Path(path).read_text().splitlines()
-                      if line.startswith(("APP_KEY=", "HASHIDS_SALT=")))
+        return sorted(line for line in Path(path).read_text().splitlines() if line.startswith(("APP_KEY=", "HASHIDS_SALT=")))
     except OSError:
         return []
 
 
 def plan_rows(ui, state, saved, archive, after_failure):
-    rows = [ui.tr("Installed: {value}").format(value=state["version"]),
-            ui.tr("Roll back to: {value}").format(value=saved["version"]),
-            ui.tr("Recovery backup: {value}").format(value=archive)]
+    rows = [
+        ui.tr("Installed: {value}").format(value=state["version"]),
+        ui.tr("Roll back to: {value}").format(value=saved["version"]),
+        ui.tr("Recovery backup: {value}").format(value=archive),
+    ]
     if after_failure:
         rows.append("The Panel stayed stopped after the backup, so no Panel data is lost.")
     else:
-        rows += ["Panel changes made after this backup will be lost.",
-                 "A safety copy of the current Panel is created first."]
+        rows += ["Panel changes made after this backup will be lost.", "A safety copy of the current Panel is created first."]
     rows.append("Application keys, credentials, certificates and current settings are kept.")
     return rows
 
@@ -90,6 +92,7 @@ def rollback(installer, after_failure=False):
         raise InstallerError("Finish or resume the Panel installation before using this option.")
     archive, saved = inspect(i, state)
     from .compat import check
+
     check(i, panel=saved["version"])
     ui.card("Panel rollback plan", plan_rows(ui, state, saved, archive, after_failure))
     if not after_failure:
@@ -122,9 +125,14 @@ def rollback(installer, after_failure=False):
     if safety:
         state["rollback_safety_backup"] = str(safety)
     i.save_panel(state)
-    ui.card("Panel rolled back", [ui.tr("Running version: {value}").format(value=saved["version"]),
-                                  *([ui.tr("Safety copy of {version}: {path}").format(version=newer, path=safety)] if safety else []),
-                                  "Update again when a fixed release is available."])
+    ui.card(
+        "Panel rolled back",
+        [
+            ui.tr("Running version: {value}").format(value=saved["version"]),
+            *([ui.tr("Safety copy of {version}: {path}").format(version=newer, path=safety)] if safety else []),
+            "Update again when a fixed release is available.",
+        ],
+    )
     ui.say("Panel rollback complete.", "ok")
     return saved["version"]
 
@@ -133,8 +141,10 @@ def database_reset(state):
     mysql = state.get("database_engine") == "mysql"
     binary, user, password = ("mysql", "MYSQL_USER", "MYSQL_PASSWORD") if mysql else ("mariadb", "MARIADB_USER", "MARIADB_PASSWORD")
     # Tables added by newer migrations must not survive: recreate the database.
-    return (f'export MYSQL_PWD="${password}"; exec {binary} --user="${user}" '
-            "--execute='DROP DATABASE IF EXISTS panel; CREATE DATABASE panel;'")
+    return (
+        f'export MYSQL_PWD="${password}"; exec {binary} --user="${user}" '
+        "--execute='DROP DATABASE IF EXISTS panel; CREATE DATABASE panel;'"
+    )
 
 
 def docker_rollback(i, state, work, saved):
@@ -164,10 +174,17 @@ def docker_rollback(i, state, work, saved):
     i.dc("up", "-d", "--wait", "--wait-timeout", "240", "database", "cache", label="Preparing the database and Redis")
     i.dc("exec", "-T", "database", "sh", "-c", database_reset(state), label="Clearing the updated database schema")
     with (work / "database.sql").open("rb") as stream:
-        i.dc("exec", "-T", "database", "sh", "-c", i.database_command(state, dump=False),
-             input_file=stream, label="Restoring the pre-update database")
-    state.update(version=saved["version"],
-                 panel_image=saved.get("panel_image") or "ghcr.io/pterodactyl/panel:" + saved["version"])
+        i.dc(
+            "exec",
+            "-T",
+            "database",
+            "sh",
+            "-c",
+            i.database_command(state, dump=False),
+            input_file=stream,
+            label="Restoring the pre-update database",
+        )
+    state.update(version=saved["version"], panel_image=saved.get("panel_image") or "ghcr.io/pterodactyl/panel:" + saved["version"])
     i.save_panel(state)
     i.dc("pull", "panel", label="Downloading the previous Panel image")
     i.prepare_mysql_client(state)

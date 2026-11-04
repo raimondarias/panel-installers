@@ -1,10 +1,10 @@
 """Root SSH provisioning with verified host keys and a source-pinned runtime payload."""
+
 import base64
 import io
 import ipaddress
 import json
 from pathlib import Path
-import re
 import secrets
 import shlex
 import tempfile
@@ -22,18 +22,45 @@ def private_ipv4(value):
 
 def target_plan(i, preview=False):
     ui = i.ui
-    result = {'host': ui.ask('Remote SSH hostname / IPv4', validator=lambda v: valid_host(v) and ':' not in v),
-              'port': int(ui.ask('Remote SSH port', '22', i.valid_port)),
-              'identity': ui.ask('Absolute SSH private key path', '/preview/id_ed25519' if preview else None, lambda v: Path(v).is_absolute() and (preview or Path(v).is_file())),
-              'known_hosts': ui.ask('Verified SSH known_hosts path', '/preview/known_hosts' if preview else str(Path.home() / '.ssh/known_hosts'), lambda v: Path(v).is_absolute() and (preview or Path(v).is_file()))}
+    result = {
+        'host': ui.ask('Remote SSH hostname / IPv4', validator=lambda v: valid_host(v) and ':' not in v),
+        'port': int(ui.ask('Remote SSH port', '22', i.valid_port)),
+        'identity': ui.ask(
+            'Absolute SSH private key path',
+            '/preview/id_ed25519' if preview else None,
+            lambda v: Path(v).is_absolute() and (preview or Path(v).is_file()),
+        ),
+        'known_hosts': ui.ask(
+            'Verified SSH known_hosts path',
+            '/preview/known_hosts' if preview else str(Path.home() / '.ssh/known_hosts'),
+            lambda v: Path(v).is_absolute() and (preview or Path(v).is_file()),
+        ),
+    }
     ui.say('Remote provisioning uses root SSH with strict host-key verification. No password is sent.')
     return result
 
 
 def ssh(target):
-    return ['ssh', '-p', str(target['port']), '-i', target['identity'], '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes',
-            '-o', 'UserKnownHostsFile=' + target['known_hosts'], '-o', 'ConnectTimeout=15', '-o', 'ServerAliveInterval=15',
-            '-o', 'ServerAliveCountMax=3', 'root@' + target['host']]
+    return [
+        'ssh',
+        '-p',
+        str(target['port']),
+        '-i',
+        target['identity'],
+        '-o',
+        'BatchMode=yes',
+        '-o',
+        'StrictHostKeyChecking=yes',
+        '-o',
+        'UserKnownHostsFile=' + target['known_hosts'],
+        '-o',
+        'ConnectTimeout=15',
+        '-o',
+        'ServerAliveInterval=15',
+        '-o',
+        'ServerAliveCountMax=3',
+        'root@' + target['host'],
+    ]
 
 
 def payload():
@@ -91,41 +118,69 @@ print('PTERO_REMOTE_SUCCESS',flush=True)
 
 def execute(i, target, request):
     import hashlib
+
     source = payload()
     request = {**request, 'runtime': source, 'sha256': hashlib.sha256(base64.b64decode(source)).hexdigest(), 'language': i.ui.language}
     with tempfile.TemporaryFile() as stream:
-        stream.write(json.dumps(request).encode()); stream.seek(0)
-        _, output = i.run.run([*ssh(target), 'python3 -c ' + shlex.quote(AGENT)], input_file=stream,
-                              timeout=14400, label='Provisioning the remote machine over verified SSH')
+        stream.write(json.dumps(request).encode())
+        stream.seek(0)
+        _, output = i.run.run(
+            [*ssh(target), 'python3 -c ' + shlex.quote(AGENT)],
+            input_file=stream,
+            timeout=14400,
+            label='Provisioning the remote machine over verified SSH',
+        )
     if 'PTERO_REMOTE_SUCCESS' not in output:
         raise InstallerError('The remote machine did not confirm successful provisioning.')
 
 
 def setup_node(i):
     from .nodes import plan, create
+
     target = target_plan(i)
     data = plan(i)
     email = i.ui.ask("Let's Encrypt email", i.panel_state()['email']) if data['scheme'] == 'https' and not data['behind_proxy'] else None
     i.ui.confirm('INSTALL REMOTE NODE')
     i.run.run([*ssh(target), 'python3 --version'], label='Checking remote SSH and Python')
     result = create(i, data, link=False)
-    execute(i, target, {'action': 'node', 'configuration': result['configuration'], 'node_id': result['node_id'],
-                        'panel_url': i.panel_state()['url'], 'fqdn': data['fqdn'], 'email': email})
+    execute(
+        i,
+        target,
+        {
+            'action': 'node',
+            'configuration': result['configuration'],
+            'node_id': result['node_id'],
+            'panel_url': i.panel_state()['url'],
+            'fqdn': data['fqdn'],
+            'email': email,
+        },
+    )
 
 
 def database_plan(i):
     panel = i.panel_state()
-    settings = {'mode': 'existing', 'method': 'standalone', 'engine': panel.get('database_engine', 'mariadb'),
-                'name': 'Remote game databases', 'username': 'ptero_games', 'password': secrets.token_hex(32), 'node_id': None,
-                'host': i.ui.ask('Remote SQL private IPv4', validator=private_ipv4),
-                'port': int(i.ui.ask('Game database port', '3307', i.valid_port))}
-    sources = i.ui.ask('Allowed private source IPv4 addresses (comma separated)', validator=lambda v: bool(v) and all(private_ipv4(x.strip()) for x in v.split(',')))
+    settings = {
+        'mode': 'existing',
+        'method': 'standalone',
+        'engine': panel.get('database_engine', 'mariadb'),
+        'name': 'Remote game databases',
+        'username': 'ptero_games',
+        'password': secrets.token_hex(32),
+        'node_id': None,
+        'host': i.ui.ask('Remote SQL private IPv4', validator=private_ipv4),
+        'port': int(i.ui.ask('Game database port', '3307', i.valid_port)),
+    }
+    sources = i.ui.ask(
+        'Allowed private source IPv4 addresses (comma separated)',
+        validator=lambda v: bool(v) and all(private_ipv4(x.strip()) for x in v.split(',')),
+    )
     settings['allowed_sources'] = sorted(set(x.strip() for x in sources.split(',')))
     return settings
 
 
 def setup_database(i):
     from .game_database import GameDatabase
+
     panel = i.panel_state()
     target = target_plan(i)
     settings = database_plan(i)

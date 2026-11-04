@@ -26,6 +26,7 @@ jobs:
         run: |
           python3 -m pip install --user ruff==0.8.6
           python3 -m ruff check .
+          python3 -m ruff format --check .
       - name: Translation coverage
         run: python3 scripts/check_translations.py
       - name: Release assets and notes build

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Capture the actual ncurses screen buffer as SVG (run inside a real PTY)."""
+
 import argparse
 import curses
 import html
@@ -13,19 +14,27 @@ from ptero.navigation import menu_items
 from ptero.terminal_text import cell_width
 from ptero.ui import UI
 
-PALETTE = {0: ("#d0d0d0", "#1c1c1c"), 1: ("#87d7ff", "#1c1c1c"),
-           2: ("#d0d0d0", "#1c1c1c"), 3: ("#8a8a8a", "#1c1c1c"),
-           4: ("#000000", "#5fd7d7"), 5: ("#87d787", "#1c1c1c"),
-           6: ("#ffd75f", "#1c1c1c"), 7: ("#ff5f5f", "#1c1c1c")}
+PALETTE = {
+    0: ("#d0d0d0", "#1c1c1c"),
+    1: ("#87d7ff", "#1c1c1c"),
+    2: ("#d0d0d0", "#1c1c1c"),
+    3: ("#8a8a8a", "#1c1c1c"),
+    4: ("#000000", "#5fd7d7"),
+    5: ("#87d787", "#1c1c1c"),
+    6: ("#ffd75f", "#1c1c1c"),
+    7: ("#ff5f5f", "#1c1c1c"),
+}
 
 
 def capture(screen, target):
     rows, columns = screen.window.getmaxyx()
     cell, line, margin = 9, 20, 12
-    elements = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{columns * cell + 2 * margin}" height="{rows * line + 2 * margin}" role="img">',
-                '<title>Pterodactyl Installer — actual ncurses screen capture</title>',
-                '<rect width="100%" height="100%" fill="#1c1c1c"/>',
-                '<g font-family="DejaVu Sans Mono,Consolas,monospace" font-size="15" xml:space="preserve">']
+    elements = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{columns * cell + 2 * margin}" height="{rows * line + 2 * margin}" role="img">',
+        '<title>Pterodactyl Installer — actual ncurses screen capture</title>',
+        '<rect width="100%" height="100%" fill="#1c1c1c"/>',
+        '<g font-family="DejaVu Sans Mono,Consolas,monospace" font-size="15" xml:space="preserve">',
+    ]
     for row in range(rows):
         text = screen.window.instr(row, 0).decode("utf-8", "replace")
         column = 0
@@ -52,7 +61,11 @@ def capture(screen, target):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--language", choices=("en", "es", "pt-BR"), default="es")
-    parser.add_argument("--scene", choices=("overview", "database", "maintenance", "backups", "nodes", "remove", "password", "preview", "review", "update-incomplete"), default="overview")
+    parser.add_argument(
+        "--scene",
+        choices=("overview", "database", "maintenance", "backups", "nodes", "remove", "password", "preview", "review", "update-incomplete"),
+        default="overview",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     ui = UI(False, args.language)
@@ -62,24 +75,43 @@ def main():
         screen = ui.screen
         screen.dashboard = {"panel": "absent", "wings": "absent", "database": "absent", "credentials": False}
         refresh = screen.refresh
+
         def snapshot():
             refresh()
             capture(screen, args.output)
             curses.unget_wch("\x1b")
+
         screen.refresh = snapshot
         if args.scene == "update-incomplete":
-            screen.dashboard = {"panel": "updating", "wings": "ready", "database": "ready", "credentials": True,
-                                "interrupted": True, "rollback": True, "panel_version": "v2.0.0-beta.3",
-                                "wings_version": "v1.13.4", "url": "https://panel.example.com"}
-        groups = {"update-incomplete": "Maintenance", "database": "Game databases", "maintenance": "Maintenance", "backups": "Backups", "nodes": "Nodes", "remove": "Remove"}
+            screen.dashboard = {
+                "panel": "updating",
+                "wings": "ready",
+                "database": "ready",
+                "credentials": True,
+                "interrupted": True,
+                "rollback": True,
+                "panel_version": "v2.0.0-beta.3",
+                "wings_version": "v1.13.4",
+                "url": "https://panel.example.com",
+            }
+        groups = {
+            "update-incomplete": "Maintenance",
+            "database": "Game databases",
+            "maintenance": "Maintenance",
+            "backups": "Backups",
+            "nodes": "Nodes",
+            "remove": "Remove",
+        }
         if args.scene in groups:
             screen.navigation = (groups[args.scene], 0)
         try:
             if args.scene == "preview":
                 from ptero.preview import show
+
                 show(ui)
             elif args.scene == "review":
                 from ptero.preview import Simulation, TourUI
+
                 ui.preview = True
                 screen.begin()
                 Simulation(TourUI(ui)).install_panel()

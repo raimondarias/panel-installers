@@ -3,6 +3,7 @@
 Every message is keyed by its English source text. Each line of
 ``scripts/translations.txt`` is ``English|||Spanish|||Brazilian Portuguese``.
 """
+
 import json
 from pathlib import Path
 

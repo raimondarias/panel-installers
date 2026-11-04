@@ -1,4 +1,5 @@
 """Health reports remain read-only and useful with missing or broken components."""
+
 from unittest.mock import patch
 
 from test_installer import BaseTest

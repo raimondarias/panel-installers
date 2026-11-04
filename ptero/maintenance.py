@@ -1,4 +1,5 @@
 """Cross-component maintenance, diagnostics and the action table."""
+
 import json
 import platform
 import shutil
@@ -21,51 +22,71 @@ class MaintenanceMixin:
 
     def health_report(self):
         from .health import inspect
+
         return inspect(self)
 
     def create_node(self):
         from .nodes import setup
+
         return setup(self)
 
     def backup_schedule(self):
         from .backups import ScheduledBackups
+
         return ScheduledBackups(self).configure()
 
     def backup_run(self):
         from .backups import ScheduledBackups
+
         return ScheduledBackups(self).run_now()
 
     def backup_download(self):
         from .backups import ScheduledBackups
+
         return ScheduledBackups(self).download()
 
     def backup_retention(self):
         from .retention import configure
+
         return configure(self)
 
     def remote_node(self):
         from .remote import setup_node
+
         return setup_node(self)
 
     def remote_database(self):
         from .remote import setup_database
+
         return setup_database(self)
 
     def resume(self):
         if self.p.state.exists() and self.panel_state()["status"] != "ready":
             state = self.panel_state()
             from .rollback import available
+
             if state["status"] == "updating" and available(state):
                 previous = state.get("previous_version") or self.ui.tr("the previous version")
-                choice = self.ui.choice("The last Panel update did not finish", [
-                    ("retry", self.ui.tr("Continue the update to {version}").format(version=state["version"]),
-                     "Run the remaining update phases again"),
-                    ("rollback", self.ui.tr("Roll back to {version}").format(version=previous),
-                     "Restore the verified pre-update backup and previous release")])
+                choice = self.ui.choice(
+                    "The last Panel update did not finish",
+                    [
+                        (
+                            "retry",
+                            self.ui.tr("Continue the update to {version}").format(version=state["version"]),
+                            "Run the remaining update phases again",
+                        ),
+                        (
+                            "rollback",
+                            self.ui.tr("Roll back to {version}").format(version=previous),
+                            "Restore the verified pre-update backup and previous release",
+                        ),
+                    ],
+                )
                 if choice == "rollback":
                     return self.rollback_panel(after_failure=True)
             return self.install_panel()
         from .game_database import GameDatabase
+
         database = GameDatabase(self)
         if database.state_file.exists():
             saved = database.load()
@@ -79,16 +100,27 @@ class MaintenanceMixin:
 
     def diagnostics(self):
         from .navigation import inventory, _state_problem
+
         installed = inventory(self)
         if installed['panel'] == installed['wings'] == 'absent':
-            self.ui.card("Ready for your first installation", [
-                "No managed Panel or Wings is installed on this machine yet.",
-                "Next: choose Install Panel and Wings, or install the Panel first."])
-        self.ui.card("Machine overview", [
-            self.ui.tr("Architecture: {value}").format(value=platform.machine()),
-            self.ui.tr("Free disk space: {value} GiB").format(value=round(shutil.disk_usage(self.p.root).free / 1024 ** 3, 1)),
-            self.ui.tr("System manager: {value}").format(value="systemd" if (self.p.root / "run/systemd/system").is_dir() else self.ui.tr("Not detected")),
-            "Diagnostics do not install software or change firewall rules."])
+            self.ui.card(
+                "Ready for your first installation",
+                [
+                    "No managed Panel or Wings is installed on this machine yet.",
+                    "Next: choose Install Panel and Wings, or install the Panel first.",
+                ],
+            )
+        self.ui.card(
+            "Machine overview",
+            [
+                self.ui.tr("Architecture: {value}").format(value=platform.machine()),
+                self.ui.tr("Free disk space: {value} GiB").format(value=round(shutil.disk_usage(self.p.root).free / 1024**3, 1)),
+                self.ui.tr("System manager: {value}").format(
+                    value="systemd" if (self.p.root / "run/systemd/system").is_dir() else self.ui.tr("Not detected")
+                ),
+                "Diagnostics do not install software or change firewall rules.",
+            ],
+        )
         for component in ('Panel', 'Wings'):
             status = installed[component.lower()]
             if status == 'absent':
@@ -108,7 +140,7 @@ class MaintenanceMixin:
                         found = set()
                         for line in text.splitlines():
                             data = json.loads(line)
-                            for service in (data if isinstance(data, list) else [data]):
+                            for service in data if isinstance(data, list) else [data]:
                                 found.add(service.get('Service'))
                                 if service.get('State') != 'running' or service.get('Health') != 'healthy':
                                     raise InstallerError('A Panel container is stopped or unhealthy.')
@@ -119,6 +151,7 @@ class MaintenanceMixin:
                     state = self.load(self.p.wings_state)
                     if state.get('method') == 'docker':
                         from .wings import DockerWings
+
                         backend = DockerWings(self, state)
                         backend.health()
                         _, text = backend.dc('ps', '--all')
@@ -127,8 +160,10 @@ class MaintenanceMixin:
                         self.run.run(['systemctl', 'is-active', '--quiet', 'wings'])
                         self.ui.say('Wings is active.', 'ok')
             except (InstallerError, OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
-                self.ui.say(self.ui.tr('Needs attention: {component} — {detail}').format(
-                    component=component, detail=self.run.redact(str(exc))), 'error')
+                self.ui.say(
+                    self.ui.tr('Needs attention: {component} — {detail}').format(component=component, detail=self.run.redact(str(exc))),
+                    'error',
+                )
         if installed['panel'] != 'absent' or installed['wings'] != 'absent':
             self.ui.say(f"Private log: {self.p.log}")
 
@@ -144,6 +179,7 @@ class MaintenanceMixin:
             state = self.load(self.p.wings_state)
             if state.get("method") == "docker":
                 from .wings import DockerWings
+
                 _, text = DockerWings(self, state).dc("logs", "--no-color", "--tail", "80")
             else:
                 _, text = self.run.run(["journalctl", "-u", "wings", "-n", "80", "--no-pager"])
@@ -182,6 +218,7 @@ class MaintenanceMixin:
     def admin(self):
         state = self.panel_state()
         from .wizard import administrator
+
         state["admin"] = administrator(self)
         self.ui.confirm("CREATE ADMINISTRATOR")
         self.create_admin(state)
@@ -196,23 +233,41 @@ class MaintenanceMixin:
         self.ui.say("Firewalls and their rules are not changed automatically.")
 
     def actions(self):
-        return {"install-all": self.install_both, "install-panel": self.install_panel,
-                "install-wings": self.install_wings, "uninstall-all": self.uninstall_both,
-                "uninstall-panel": self.uninstall_panel, "uninstall-wings": self.uninstall_wings,
-                "update-panel": self.update_panel, "update-wings": self.update_wings,
-                "rollback-panel": self.rollback_panel,
-                "configure-wings": self.configure_wings, "tls-wings": self.wings_tls,
-                "backup-panel": self.backup_panel, "backup-wings": self.backup_wings,
-                "restore-panel": self.restore_panel, "diagnose": self.diagnostics,
-                "restart": self.restart, "logs": self.logs, "smtp": self.mail,
-                "admin": self.admin, "firewall": self.firewall,
-                "configure-database": self.configure_game_database,
-                "database-credentials": self.game_database_credentials,
-                "create-node": self.create_node,
-                "backup-schedule": self.backup_schedule, "backup-run": self.backup_run,
-                "backup-download": self.backup_download, "backup-retention": self.backup_retention, "health": self.health_report,
-                "resume": self.resume, "remote-node": self.remote_node, "remote-database": self.remote_database}
+        return {
+            "install-all": self.install_both,
+            "install-panel": self.install_panel,
+            "install-wings": self.install_wings,
+            "uninstall-all": self.uninstall_both,
+            "uninstall-panel": self.uninstall_panel,
+            "uninstall-wings": self.uninstall_wings,
+            "update-panel": self.update_panel,
+            "update-wings": self.update_wings,
+            "rollback-panel": self.rollback_panel,
+            "configure-wings": self.configure_wings,
+            "tls-wings": self.wings_tls,
+            "backup-panel": self.backup_panel,
+            "backup-wings": self.backup_wings,
+            "restore-panel": self.restore_panel,
+            "diagnose": self.diagnostics,
+            "restart": self.restart,
+            "logs": self.logs,
+            "smtp": self.mail,
+            "admin": self.admin,
+            "firewall": self.firewall,
+            "configure-database": self.configure_game_database,
+            "database-credentials": self.game_database_credentials,
+            "create-node": self.create_node,
+            "backup-schedule": self.backup_schedule,
+            "backup-run": self.backup_run,
+            "backup-download": self.backup_download,
+            "backup-retention": self.backup_retention,
+            "health": self.health_report,
+            "resume": self.resume,
+            "remote-node": self.remote_node,
+            "remote-database": self.remote_database,
+        }
 
     def menu(self):
         from .cli import menu
+
         return menu(self)

@@ -1,4 +1,5 @@
 """Execute the real Bash bootstrap against a local, recorded GitHub fixture."""
+
 import contextlib
 import hashlib
 import importlib.util
@@ -43,7 +44,11 @@ class BootstrapTests(BaseTest):
         self.work = self.base / "work"
         self.work.mkdir()
         fake = self.bin / "curl"
-        fake.write_text("#!" + sys.executable + "\n" + '''
+        fake.write_text(
+            "#!"
+            + sys.executable
+            + "\n"
+            + '''
 import json, os, pathlib, shutil, sys
 args = sys.argv[1:]
 url = next(value for value in args if value.startswith('https://'))
@@ -63,23 +68,34 @@ else:
     if not source.is_file():
         raise SystemExit(22)
     shutil.copyfile(source, target)
-''')
+'''
+        )
         fake.chmod(0o755)
-        self.environment = {**os.environ, "PATH": str(self.bin) + os.pathsep + os.environ["PATH"],
-                            "FIXTURE_LOG": str(self.download_log), "FIXTURE_RELEASES": str(self.releases),
-                            "FIXTURE_LATEST": TAG, "TMPDIR": str(self.work)}
+        self.environment = {
+            **os.environ,
+            "PATH": str(self.bin) + os.pathsep + os.environ["PATH"],
+            "FIXTURE_LOG": str(self.download_log),
+            "FIXTURE_RELEASES": str(self.releases),
+            "FIXTURE_LATEST": TAG,
+            "TMPDIR": str(self.work),
+        }
         for name in ("PTERO_RELEASE_TAG", "PTERO_NO_SELF_UPDATE", "PTERO_SELF_UPDATED", "PTERO_UPDATE_DIR"):
             self.environment.pop(name, None)
 
     def run_bootstrap(self, selection="", args=("--preview", "--no-animation")):
-        return subprocess.run(["bash", str(ROOT / "install.sh"), *args], input=selection,
-                              text=True, capture_output=True, env=self.environment, timeout=30)
+        return subprocess.run(
+            ["bash", str(ROOT / "install.sh"), *args], input=selection, text=True, capture_output=True, env=self.environment, timeout=30
+        )
 
     def downloads(self):
         return [json.loads(line) for line in self.download_log.read_text().splitlines()] if self.download_log.exists() else []
 
     def test_first_question_is_english_then_only_selected_language_is_downloaded(self):
-        for number, language, text in ((1, "en", "Ready to install"), (2, "es", "Listo para instalar"), (3, "pt-BR", "Pronto para instalar")):
+        for number, language, text in (
+            (1, "en", "Ready to install"),
+            (2, "es", "Listo para instalar"),
+            (3, "pt-BR", "Pronto para instalar"),
+        ):
             with self.subTest(language=language):
                 self.download_log.unlink(missing_ok=True)
                 result = self.run_bootstrap(str(number) + "\n")
@@ -139,8 +155,14 @@ else:
         saved = self.base / "ptero-setup.sh"
         shutil.copyfile(ROOT / "install.sh", saved)
         saved.chmod(0o750)
-        result = subprocess.run(["bash", str(saved), "--preview", "--no-animation"], input="2\n", text=True,
-                                capture_output=True, env=self.environment, timeout=30)
+        result = subprocess.run(
+            ["bash", str(saved), "--preview", "--no-animation"],
+            input="2\n",
+            text=True,
+            capture_output=True,
+            env=self.environment,
+            timeout=30,
+        )
         self.assertIn(f"Actualizando el instalador de {__version__} a 9.9.9", result.stdout)
         self.assertIn("UPDATED BOOTSTRAP --preview --no-animation --language es", result.stdout)
         self.assertEqual(saved.read_text(), script)
@@ -152,8 +174,14 @@ else:
         self.newer_release(tamper=True)
         saved = self.base / "ptero-setup.sh"
         shutil.copyfile(ROOT / "install.sh", saved)
-        result = subprocess.run(["bash", str(saved), "--preview", "--no-animation"], input="1\n", text=True,
-                                capture_output=True, env=self.environment, timeout=30)
+        result = subprocess.run(
+            ["bash", str(saved), "--preview", "--no-animation"],
+            input="1\n",
+            text=True,
+            capture_output=True,
+            env=self.environment,
+            timeout=30,
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("could not be verified", result.stderr)
         self.assertEqual(saved.read_bytes(), (ROOT / "install.sh").read_bytes())
@@ -186,8 +214,12 @@ else:
 
     def test_checksum_mismatch_is_rejected_before_extraction(self):
         sums = self.packages / "SHA256SUMS"
-        sums.write_text("".join(("0" * 64 + "  installer-es.tar.gz\n") if line.endswith("installer-es.tar.gz\n") else line
-                                for line in sums.read_text().splitlines(keepends=True)))
+        sums.write_text(
+            "".join(
+                ("0" * 64 + "  installer-es.tar.gz\n") if line.endswith("installer-es.tar.gz\n") else line
+                for line in sums.read_text().splitlines(keepends=True)
+            )
+        )
         result = self.run_bootstrap("2\n")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("checksum mismatch", result.stderr)
@@ -197,8 +229,12 @@ else:
         shutil.copyfile(self.packages / "installer-en.tar.gz", self.packages / "installer-es.tar.gz")
         sums = self.packages / "SHA256SUMS"
         english = next(line.split()[0] for line in sums.read_text().splitlines() if line.endswith("installer-en.tar.gz"))
-        sums.write_text("".join((english + "  installer-es.tar.gz\n") if line.endswith("installer-es.tar.gz\n") else line
-                                for line in sums.read_text().splitlines(keepends=True)))
+        sums.write_text(
+            "".join(
+                (english + "  installer-es.tar.gz\n") if line.endswith("installer-es.tar.gz\n") else line
+                for line in sums.read_text().splitlines(keepends=True)
+            )
+        )
         result = self.run_bootstrap("2\n")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("does not match", result.stderr)
@@ -221,8 +257,12 @@ else:
                         stream.addfile(item, io.BytesIO())
                 checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
                 sums = self.packages / "SHA256SUMS"
-                sums.write_text("".join((checksum + "  installer-en.tar.gz\n") if line.endswith("installer-en.tar.gz\n") else line
-                                        for line in sums.read_text().splitlines(keepends=True)))
+                sums.write_text(
+                    "".join(
+                        (checksum + "  installer-en.tar.gz\n") if line.endswith("installer-en.tar.gz\n") else line
+                        for line in sums.read_text().splitlines(keepends=True)
+                    )
+                )
                 result = self.run_bootstrap("1\n")
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("Unsafe or duplicate", result.stderr)
@@ -233,8 +273,14 @@ else:
         with contextlib.redirect_stdout(io.StringIO()):
             builder().build(self.base / "second")
         sums = {line.split()[1]: line.split()[0] for line in (self.packages / "SHA256SUMS").read_text().splitlines()}
-        self.assertEqual(set(sums), {"install.sh", *(f"installer-{l}.tar.gz" for l in ("en", "es", "pt-BR")),
-                                     *(f"messages-{l}.json" for l in ("en", "es", "pt-BR"))})
+        self.assertEqual(
+            set(sums),
+            {
+                "install.sh",
+                *(f"installer-{lang}.tar.gz" for lang in ("en", "es", "pt-BR")),
+                *(f"messages-{lang}.json" for lang in ("en", "es", "pt-BR")),
+            },
+        )
         for name, digest in sums.items():
             self.assertEqual(hashlib.sha256((self.packages / name).read_bytes()).hexdigest(), digest)
             self.assertEqual((self.packages / name).read_bytes(), (self.base / "second" / name).read_bytes())
@@ -260,12 +306,18 @@ class LanguageChangeTests(BaseTest):
         self.translated = json.dumps({"Choose an option": {"es": "Elige una opción"}}).encode()
         self.target = self.directory / "locales/messages.json"
         self.target.write_text(json.dumps(self.original))
-        self.metadata = {"repository": REPOSITORY, "version": __version__,
-                         "locale_sha256": {"es": hashlib.sha256(self.translated).hexdigest()}}
+        self.metadata = {
+            "repository": REPOSITORY,
+            "version": __version__,
+            "locale_sha256": {"es": hashlib.sha256(self.translated).hexdigest()},
+        }
         (self.directory / "distribution.json").write_text(json.dumps(self.metadata))
 
     def test_switch_downloads_only_requested_locale_from_same_release_and_caches_it(self):
-        with patch.dict(os.environ, {"PTERO_RELEASE_TAG": TAG}), patch("ptero.distribution.urllib.request.urlopen", return_value=io.BytesIO(self.translated)) as request:
+        with (
+            patch.dict(os.environ, {"PTERO_RELEASE_TAG": TAG}),
+            patch("ptero.distribution.urllib.request.urlopen", return_value=io.BytesIO(self.translated)) as request,
+        ):
             updated = ensure_language(self.original, "es", self.directory)
         self.assertIn(f"/releases/download/{TAG}/messages-es.json", request.call_args.args[0].full_url)
         self.assertEqual(updated["Choose an option"]["es"], "Elige una opción")

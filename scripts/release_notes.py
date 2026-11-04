@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Print the CHANGELOG section of one version, for the GitHub Release notes."""
+
 from pathlib import Path
 import re
 import sys

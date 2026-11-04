@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Read-only smoke check of the actual published GitHub distribution."""
+
 import hashlib
 import fcntl
 import json
 import os
 import pty
 from pathlib import Path
-import re
 import select
 import signal
 import struct
@@ -38,10 +38,16 @@ def tui_preview(launcher, number, language, environment):
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 28, 100, 0, 0))
     original = termios.tcgetattr(slave)
-    process = subprocess.Popen(["bash", str(launcher), "--preview", "--no-animation"],
-                               stdin=slave, stdout=slave, stderr=slave, start_new_session=True,
-                               env={**environment, "TERM": "xterm-256color", "LANG": "C.UTF-8"})
+    process = subprocess.Popen(
+        ["bash", str(launcher), "--preview", "--no-animation"],
+        stdin=slave,
+        stdout=slave,
+        stderr=slave,
+        start_new_session=True,
+        env={**environment, "TERM": "xterm-256color", "LANG": "C.UTF-8"},
+    )
     output = bytearray()
+
     def until(marker, start=0):
         deadline = time.monotonic() + 120
         while time.monotonic() < deadline:
@@ -53,6 +59,7 @@ def tui_preview(launcher, number, language, environment):
             elif process.poll() is not None:
                 break
         raise app.InstallerError(f"Published {language} TUI failed: " + output.decode("utf-8", "replace")[-1500:])
+
     try:
         until("Which language would you like to use?")
         row = 7 + number * 2
@@ -103,17 +110,27 @@ def main():
         work = Path(directory)
         launcher = work / "install.sh"
         launcher.write_bytes(bootstrap)
-        for number, language, expected in ((1, "en", "Ready to install"),
-                                            (2, "es", "Listo para instalar"),
-                                            (3, "pt-BR", "Pronto para instalar")):
-            result = subprocess.run(["bash", str(launcher), "--preview", "--no-animation"],
-                                    input=f"{number}\n", text=True, capture_output=True,
-                                    timeout=240, env=environment)
+        for number, language, expected in (
+            (1, "en", "Ready to install"),
+            (2, "es", "Listo para instalar"),
+            (3, "pt-BR", "Pronto para instalar"),
+        ):
+            result = subprocess.run(
+                ["bash", str(launcher), "--preview", "--no-animation"],
+                input=f"{number}\n",
+                text=True,
+                capture_output=True,
+                timeout=240,
+                env=environment,
+            )
             if result.returncode or expected not in result.stdout or result.stdout.count("Which language would you like to use?") != 1:
                 raise app.InstallerError(f"Published {language} preview failed: " + result.stderr[-2000:])
             print(f"OK real GitHub release download and preview: {language}; one English language question", flush=True)
             tui_preview(launcher, number, language, environment)
-            print(f"OK published full-screen TUI: {language}; mouse language/action selection, wizard cancellation and terminal restoration", flush=True)
+            print(
+                f"OK published full-screen TUI: {language}; mouse language/action selection, wizard cancellation and terminal restoration",
+                flush=True,
+            )
         payload = fetch(base + "/installer-en.tar.gz")
         if hashlib.sha256(payload).hexdigest() != sums.get("installer-en.tar.gz"):
             raise app.InstallerError("The published English archive checksum is invalid.")
@@ -121,12 +138,13 @@ def main():
         archive.write_bytes(payload)
         runtime = work / "runtime"
         app.secure_extract(archive, runtime, preserve_ownership=False)
-        code = ("import json;from ptero.i18n import Translator;"
-                "print(json.dumps({language:Translator(language)('Choose an option') "
-                "for language in ('en','es','pt-BR')},ensure_ascii=False))")
+        code = (
+            "import json;from ptero.i18n import Translator;"
+            "print(json.dumps({language:Translator(language)('Choose an option') "
+            "for language in ('en','es','pt-BR')},ensure_ascii=False))"
+        )
         environment.update(PTERO_RELEASE_TAG=tag, PYTHONPATH="")
-        result = subprocess.run([sys.executable, "-c", code], cwd=runtime, capture_output=True,
-                                text=True, env=environment, timeout=120)
+        result = subprocess.run([sys.executable, "-c", code], cwd=runtime, capture_output=True, text=True, env=environment, timeout=120)
         if result.returncode:
             raise app.InstallerError("Published language change failed: " + result.stderr[-2000:])
         translated = json.loads(result.stdout)

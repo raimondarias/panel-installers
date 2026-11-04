@@ -1,4 +1,5 @@
 """Panel and Wings compatibility checks before install, update and rollback."""
+
 import unittest
 from unittest.mock import patch
 
@@ -29,8 +30,10 @@ class CompatibilityTests(BaseTest):
     def test_incompatible_wings_update_is_blocked_before_download(self):
         self.installer.save_panel(self.state)
         self.wings()
-        with patch.object(self.installer, "choose_release", return_value={"tag_name": "v1.12.0"}), \
-             patch.object(self.installer, "download_wings") as download:
+        with (
+            patch.object(self.installer, "choose_release", return_value={"tag_name": "v1.12.0"}),
+            patch.object(self.installer, "download_wings") as download,
+        ):
             with self.assertRaisesRegex(app.InstallerError, "requires Wings"):
                 self.installer.update_wings()
         download.assert_not_called()

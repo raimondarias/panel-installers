@@ -1,4 +1,5 @@
 """Log rotation, inherited-credential filtering and bounded downloads."""
+
 import io
 import os
 from pathlib import Path
@@ -53,6 +54,7 @@ class HardeningTests(unittest.TestCase):
 class CatalogueTests(unittest.TestCase):
     def test_every_user_visible_message_is_translated(self):
         import importlib.util
+
         root = Path(__file__).resolve().parents[1]
         spec = importlib.util.spec_from_file_location("check_translations", root / "scripts/check_translations.py")
         module = importlib.util.module_from_spec(spec)
@@ -62,6 +64,7 @@ class CatalogueTests(unittest.TestCase):
     def test_source_strings_are_english(self):
         root = Path(__file__).resolve().parents[1]
         import json
+
         catalogue = json.loads((root / "ptero/locales/messages.json").read_text())
         self.assertTrue(all(source == values["en"] for source, values in catalogue.items()))
 

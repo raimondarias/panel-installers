@@ -1,4 +1,5 @@
 """Standalone Panel: APT repositories, PHP/database packages, Composer and verified Panel source."""
+
 import hashlib
 import os
 from pathlib import Path
@@ -22,8 +23,7 @@ class NativePackagesMixin:
         if "BEGIN PGP PUBLIC KEY BLOCK" not in text:
             raise InstallerError("Invalid repository signing key.")
         atomic_write(key, text, 0o644)
-        atomic_write(self.p.root / f"etc/apt/sources.list.d/ptero-{name}.list",
-                     f"deb [signed-by={key}] {repository}\n", 0o644)
+        atomic_write(self.p.root / f"etc/apt/sources.list.d/ptero-{name}.list", f"deb [signed-by={key}] {repository}\n", 0o644)
 
     def dependencies(self):
         release = self.i.check_host()
@@ -40,8 +40,7 @@ class NativePackagesMixin:
             if code == 0 and "install ok installed|" in status:
                 existing = True
                 version = re.search(r"\|(?:\d+:)?(\d+)\.(\d+)", status)
-                if version and ((self.mysql and int(version[1]) < 8) or
-                                (not self.mysql and (int(version[1]), int(version[2])) < (10, 11))):
+                if version and ((self.mysql and int(version[1]) < 8) or (not self.mysql and (int(version[1]), int(version[2])) < (10, 11))):
                     raise InstallerError("The existing database server is too old for Panel v2. Choose Docker or upgrade it separately.")
         if "created_database_service" not in self.s:
             self.s["created_database_service"] = not existing
@@ -62,21 +61,35 @@ class NativePackagesMixin:
                 keyring = self.p.base / "debsuryorg-archive-keyring.deb"
                 keyring.write_bytes(self.i.fetch("https://packages.sury.org/debsuryorg-archive-keyring.deb"))
                 self.run.run(["dpkg", "-i", keyring])
-                atomic_write(self.p.root / "etc/apt/sources.list.d/ptero-php.list",
-                             f"deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ {release['VERSION_CODENAME']} main\n", 0o644)
+                atomic_write(
+                    self.p.root / "etc/apt/sources.list.d/ptero-php.list",
+                    (
+                        f"deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ "
+                        f"{release['VERSION_CODENAME']} main\n"
+                    ),
+                    0o644,
+                )
             self.run.run(["apt-get", "update"], label="Updating PHP packages")
-        self.apt(["php" + php + "-" + extension for extension in
-                  ("cli", "common", "fpm", "gd", "mysql", "mbstring", "bcmath", "xml", "curl", "zip", "intl")])
+        self.apt(
+            [
+                "php" + php + "-" + extension
+                for extension in ("cli", "common", "fpm", "gd", "mysql", "mbstring", "bcmath", "xml", "curl", "zip", "intl")
+            ]
+        )
         if self.mysql and release["ID"] == "debian":
             if platform.machine() != "x86_64":
                 raise InstallerError("Native MySQL on Debian requires amd64. Choose MariaDB or Docker on ARM64.")
-            self.repository("mysql", "https://repo.mysql.com/RPM-GPG-KEY-mysql-2025",
-                            f"https://repo.mysql.com/apt/debian/ {release['VERSION_CODENAME']} mysql-8.4-lts")
+            self.repository(
+                "mysql",
+                "https://repo.mysql.com/RPM-GPG-KEY-mysql-2025",
+                f"https://repo.mysql.com/apt/debian/ {release['VERSION_CODENAME']} mysql-8.4-lts",
+            )
             self.run.run(["apt-get", "update"], label="Updating database packages")
             self.apt(["mysql-community-server", "mysql-community-client"])
         elif not self.mysql and release["ID"] == "ubuntu" and release["VERSION_ID"] == "22.04":
-            self.repository("mariadb", "https://mariadb.org/mariadb_release_signing_key.asc",
-                            "https://mirror.mariadb.org/repo/11.4/ubuntu jammy main")
+            self.repository(
+                "mariadb", "https://mariadb.org/mariadb_release_signing_key.asc", "https://mirror.mariadb.org/repo/11.4/ubuntu jammy main"
+            )
             self.run.run(["apt-get", "update"], label="Updating database packages")
             self.apt(["mariadb-server", "mariadb-client"])
         else:
@@ -93,7 +106,9 @@ class NativePackagesMixin:
         if release.get("ID") == "ubuntu" and release.get("VERSION_ID") == "26.04":
             _, policy = self.run.run(["apt-cache", "policy", "php" + self.s.get("php", "8.3") + "-cli"], check=False)
             if not policy.strip() or "Candidate: (none)" in policy:
-                raise InstallerError("Ubuntu 26.04 needs a configured PHP 8.3/8.4 package source for standalone. Use Docker or Ubuntu 24.04.")
+                raise InstallerError(
+                    "Ubuntu 26.04 needs a configured PHP 8.3/8.4 package source for standalone. Use Docker or Ubuntu 24.04."
+                )
 
     def composer(self):
         tool = self.p.base / "tools/composer"
@@ -107,8 +122,9 @@ class NativePackagesMixin:
             raise InstallerError("Composer installer signature does not match.")
         try:
             setup.write_bytes(content)
-            self.run.run([self.php, setup, "--2", "--install-dir=" + str(tool.parent), "--filename=composer"],
-                         label="Installing verified Composer 2")
+            self.run.run(
+                [self.php, setup, "--2", "--install-dir=" + str(tool.parent), "--filename=composer"], label="Installing verified Composer 2"
+            )
         finally:
             setup.unlink(missing_ok=True)
 

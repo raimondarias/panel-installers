@@ -1,4 +1,5 @@
 """Shared constants, errors, validators and safe file helpers. Standard library only."""
+
 import hashlib
 import ipaddress
 import json
@@ -61,10 +62,20 @@ def node_configuration(payload, url):
         upload = api.get("upload_limit", 100)
         if type(upload) is not int or upload < 0:
             raise ValueError("invalid upload_limit")
-        return {"debug": False, "uuid": payload["uuid"], "token_id": payload["token_id"],
-                "token": payload["token"], "api": {"host": host, "port": port,
-                "ssl": {key: ssl.get(key, "") for key in ("enabled", "cert", "key")}, "upload_limit": upload},
-                "system": {"sftp": {"bind_port": sftp}}, "remote": url}
+        return {
+            "debug": False,
+            "uuid": payload["uuid"],
+            "token_id": payload["token_id"],
+            "token": payload["token"],
+            "api": {
+                "host": host,
+                "port": port,
+                "ssl": {key: ssl.get(key, "") for key in ("enabled", "cert", "key")},
+                "upload_limit": upload,
+            },
+            "system": {"sftp": {"bind_port": sftp}},
+            "remote": url,
+        }
     except (KeyError, TypeError, ValueError, AttributeError) as exc:
         raise InstallerError("The API did not return a valid node configuration.") from exc
 
@@ -137,8 +148,7 @@ def valid_host(value):
         ipaddress.ip_address(value)
         return True
     except ValueError:
-        return all(re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", part)
-                   for part in value.split("."))
+        return all(re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", part) for part in value.split("."))
 
 
 def valid_domain(value):
@@ -152,10 +162,16 @@ def valid_domain(value):
 def valid_url(value):
     try:
         url = urllib.parse.urlsplit(value)
-        return (url.scheme in ("https", "http") and valid_host(url.hostname or "")
-                and not url.username and not url.password and not url.query
-                and not url.fragment and url.path in ("", "/")
-                and (url.port is None or 0 < url.port <= 65535))
+        return (
+            url.scheme in ("https", "http")
+            and valid_host(url.hostname or "")
+            and not url.username
+            and not url.password
+            and not url.query
+            and not url.fragment
+            and url.path in ("", "/")
+            and (url.port is None or 0 < url.port <= 65535)
+        )
     except ValueError:
         return False
 
@@ -183,10 +199,15 @@ def secure_extract(archive, destination, preserve_ownership=True):
         for member in members:
             name = Path(member.name)
             target = (destination / name).resolve()
-            if (name.is_absolute() or ".." in name.parts or not name.parts
-                    or not target.is_relative_to(destination)
-                    or not (member.isfile() or member.isdir() or member.issym() or member.islnk()) or member.name in seen
-                    or any(parent in links for parent in name.parents)):
+            if (
+                name.is_absolute()
+                or ".." in name.parts
+                or not name.parts
+                or not target.is_relative_to(destination)
+                or not (member.isfile() or member.isdir() or member.issym() or member.islnk())
+                or member.name in seen
+                or any(parent in links for parent in name.parents)
+            ):
                 raise InstallerError(f"Backup contains a forbidden entry: {member.name}")
             if member.issym():
                 link = Path(member.linkname)

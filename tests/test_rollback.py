@@ -1,4 +1,5 @@
 """Guided Panel update rollback for Docker and standalone deployments."""
+
 import json
 from pathlib import Path
 import unittest
@@ -60,15 +61,17 @@ class DockerRollbackTests(BaseTest):
         self.assertEqual((self.paths.data / "var/.env").read_text(), 'APP_KEY="original-key"\nHASHIDS_SALT="original-salt"\n')
         executed = commands(self.runner)
         reset = next(index for index, command in enumerate(executed) if "DROP DATABASE IF EXISTS panel" in command)
-        restore = next(index for index, command in enumerate(executed) if "--execute" not in command
-                       and ("exec mariadb " in command or "exec mysql " in command))
+        restore = next(
+            index
+            for index, command in enumerate(executed)
+            if "--execute" not in command and ("exec mariadb " in command or "exec mysql " in command)
+        )
         self.assertLess(reset, restore)
         self.assertEqual(self.runner.restored, self.runner.dump)
         self.assertIn("panel", self.runner.running)
         compose = json.loads(self.paths.compose.read_text())
         self.assertNotIn(NEW, compose["services"]["panel"]["image"])
-        self.assertEqual(prerequisite("rollback-panel", inventory(self.installer)).split(".")[0],
-                         "No Panel update can be rolled back")
+        self.assertEqual(prerequisite("rollback-panel", inventory(self.installer)).split(".")[0], "No Panel update can be rolled back")
 
     def test_failed_update_offers_rollback_without_a_safety_copy(self):
         with self.assertRaisesRegex(app.InstallerError, "rolled back"):
@@ -137,8 +140,7 @@ class DockerRollbackTests(BaseTest):
 class NativeRollbackTests(BaseTest):
     def setUp(self):
         super().setUp()
-        self.state.update(method="standalone", database_engine="mariadb", php="8.3", redis_password="c" * 64,
-                          database_claimed=True)
+        self.state.update(method="standalone", database_engine="mariadb", php="8.3", redis_password="c" * 64, database_claimed=True)
         self.installer.save_panel(self.state)
         self.backend = NativeBackend(self.installer, self.state)
         self.backend.app.mkdir(parents=True)
@@ -151,10 +153,15 @@ class NativeRollbackTests(BaseTest):
         def fail_after_replacing_code(*_):
             (self.backend.app / "artisan").write_text("<?php // new release")
             raise app.InstallerError("migration failed")
+
         self.ui.choices = [True]
-        with patch.object(NativeBackend, "source"), patch.object(NativeBackend, "install", side_effect=fail_after_replacing_code), \
-             patch.object(NativeBackend, "start"), patch.object(self.installer, "choose_release", return_value={"tag_name": NEW}), \
-             self.assertRaisesRegex(app.InstallerError, "rolled back"):
+        with (
+            patch.object(NativeBackend, "source"),
+            patch.object(NativeBackend, "install", side_effect=fail_after_replacing_code),
+            patch.object(NativeBackend, "start"),
+            patch.object(self.installer, "choose_release", return_value={"tag_name": NEW}),
+            self.assertRaisesRegex(app.InstallerError, "rolled back"),
+        ):
             self.installer.update_panel()
         state = self.installer.panel_state()
         self.assertEqual((state["status"], state["version"], state["source_installed"]), ("ready", app.PANEL_VERSION, app.PANEL_VERSION))
@@ -172,14 +179,18 @@ class NativeRollbackTests(BaseTest):
 class DashboardTests(BaseTest):
     def test_friendly_status_labels_versions_and_attention_hints(self):
         from ptero.navigation import attention, status_label
+
         self.panel()
         state = inventory(self.installer)
         self.assertEqual(status_label("panel", state), "Configured")
         self.assertEqual(status_label("database", state), "Not configured")
         self.assertEqual(state["panel_version"], app.PANEL_VERSION)
         self.assertEqual(attention(state), "")
-        for status, label in (("updating", "Update incomplete"), ("installing", "Installation incomplete"),
-                              ("restoring", "Restore incomplete")):
+        for status, label in (
+            ("updating", "Update incomplete"),
+            ("installing", "Installation incomplete"),
+            ("restoring", "Restore incomplete"),
+        ):
             self.installer.save_panel({**self.state, "status": status})
             state = inventory(self.installer)
             self.assertEqual(status_label("panel", state), label)
@@ -188,10 +199,12 @@ class DashboardTests(BaseTest):
 
     def test_duration_formatting(self):
         from ptero.cli import duration
+
         self.assertEqual([duration(value) for value in (4.9, 75, 3725)], ["4s", "1m 15s", "1h 02m"])
 
     def test_mysql_reset_uses_mysql_client_variables(self):
         from ptero.rollback import database_reset
+
         self.assertIn('exec mysql --user="$MYSQL_USER"', database_reset({"database_engine": "mysql"}))
         self.assertIn('exec mariadb --user="$MARIADB_USER"', database_reset({}))
 

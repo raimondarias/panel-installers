@@ -1,5 +1,5 @@
 """Wings lifecycle: verified download, linking, TLS, backup, update and removal."""
-import hashlib
+
 import json
 import os
 import platform
@@ -12,8 +12,19 @@ import urllib.parse
 import urllib.request
 
 from . import __version__
-from .common import (PROJECT, SCHEMA, WINGS_VERSION, InstallerError, NoRedirect, atomic_write, download,
-                     node_configuration, valid_domain, valid_email, write_json)
+from .common import (
+    PROJECT,
+    SCHEMA,
+    WINGS_VERSION,
+    InstallerError,
+    NoRedirect,
+    atomic_write,
+    download,
+    node_configuration,
+    valid_domain,
+    valid_email,
+    write_json,
+)
 
 
 class WingsMixin:
@@ -40,12 +51,14 @@ class WingsMixin:
             raise
 
     def service_text(self):
-        return ("[Unit]\nDescription=Pterodactyl Wings\nAfter=docker.service network-online.target\n"
-                "Wants=network-online.target\nRequires=docker.service\nPartOf=docker.service\n"
-                "StartLimitIntervalSec=180\nStartLimitBurst=30\n\n[Service]\nUser=root\n"
-                f"WorkingDirectory={self.p.config_dir}\nLimitNOFILE=65536\n"
-                f"ExecStart={self.p.wings} --config {self.p.config}\nRestart=on-failure\nRestartSec=5s\n"
-                "\n[Install]\nWantedBy=multi-user.target\n")
+        return (
+            "[Unit]\nDescription=Pterodactyl Wings\nAfter=docker.service network-online.target\n"
+            "Wants=network-online.target\nRequires=docker.service\nPartOf=docker.service\n"
+            "StartLimitIntervalSec=180\nStartLimitBurst=30\n\n[Service]\nUser=root\n"
+            f"WorkingDirectory={self.p.config_dir}\nLimitNOFILE=65536\n"
+            f"ExecStart={self.p.wings} --config {self.p.config}\nRestart=on-failure\nRestartSec=5s\n"
+            "\n[Install]\nWantedBy=multi-user.target\n"
+        )
 
     def install_wings(self):
         self.ui.step(1, 3, "Wings installation")
@@ -54,6 +67,7 @@ class WingsMixin:
             state = self.load(self.p.wings_state)
             if state.get("method") == "docker":
                 from .wings import DockerWings
+
                 DockerWings(self, state).save()
                 self.ui.say("Wings container already installed. Use configure or update.")
                 return
@@ -67,17 +81,33 @@ class WingsMixin:
                 raise InstallerError("An unmanaged Wings installation exists. It will not be overwritten.")
             release = self.choose_release("wings", WINGS_VERSION)
         from .compat import check
+
         check(self, wings=release["tag_name"])
-        method = state.get("method", "standalone") if self.p.wings_state.exists() else self.ui.choice("Wings deployment", [
-            ("standalone", "Standalone daemon (Recommended)", "A systemd service managing Docker game containers"),
-            ("docker", "Docker container", "A Wings container with host networking and Docker socket access")])
+        method = (
+            state.get("method", "standalone")
+            if self.p.wings_state.exists()
+            else self.ui.choice(
+                "Wings deployment",
+                [
+                    ("standalone", "Standalone daemon (Recommended)", "A systemd service managing Docker game containers"),
+                    ("docker", "Docker container", "A Wings container with host networking and Docker socket access"),
+                ],
+            )
+        )
         self.ui.confirm("INSTALL WINGS")
         self.ui.step(2, 3, "Deploying Wings")
         self.docker()
         if method == "docker":
             from .wings import DockerWings
-            state = {"schema": SCHEMA, "owner": PROJECT, "method": "docker", "version": release["tag_name"],
-                     "status": "pending", "image": self.pin_image("ghcr.io/pterodactyl/wings:" + release["tag_name"])}
+
+            state = {
+                "schema": SCHEMA,
+                "owner": PROJECT,
+                "method": "docker",
+                "version": release["tag_name"],
+                "status": "pending",
+                "image": self.pin_image("ghcr.io/pterodactyl/wings:" + release["tag_name"]),
+            }
             DockerWings(self, state).save()
             if self.ui.yes("Link Wings to the Panel now?", True):
                 self.configure_wings()
@@ -88,8 +118,7 @@ class WingsMixin:
         self.download_wings(release, staged)
         self.p.config_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         # Record state before publishing so a later failure can be resumed or configured.
-        write_json(self.p.wings_state, {"schema": SCHEMA, "owner": PROJECT, "version": release["tag_name"],
-                                       "status": "pending"})
+        write_json(self.p.wings_state, {"schema": SCHEMA, "owner": PROJECT, "version": release["tag_name"], "status": "pending"})
         os.replace(staged, self.p.wings)
         atomic_write(self.p.service, self.service_text(), 0o644)
         self.run.run(["systemctl", "daemon-reload"])
@@ -102,11 +131,18 @@ class WingsMixin:
     def configure_wings(self):
         state = self.load(self.p.wings_state)
         if self.p.state.exists() and self.panel_state().get("status") == "ready":
-            method = self.ui.choice("Node connection method", [("automatic", "Create node automatically (Recommended)", "Create location, node and allocations, then configure Wings"), ("manual", "Use an existing node token", "Link a node already created in the Panel")])
+            method = self.ui.choice(
+                "Node connection method",
+                [
+                    ("automatic", "Create node automatically (Recommended)", "Create location, node and allocations, then configure Wings"),
+                    ("manual", "Use an existing node token", "Link a node already created in the Panel"),
+                ],
+            )
             if method == "automatic":
                 return self.create_node()
         self.ui.step(3, 3, "Node connection")
         from .node_plan import connection
+
         known = self.panel_state() if self.p.state.exists() else None
         url, node, token = connection(self, known["url"] if known else None)
         if self.p.config.exists():
@@ -115,11 +151,19 @@ class WingsMixin:
         self.docker()
         # Same endpoint as `wings configure`; verified HTTPS and no token in argv.
         endpoint = url + f"/api/application/nodes/{node}/configuration"
-        request = urllib.request.Request(endpoint, headers={
-            "Authorization": "Bearer " + token, "Accept": "application/vnd.pterodactyl.v1+json",
-            "User-Agent": "ptero-installer/" + __version__})
+        request = urllib.request.Request(
+            endpoint,
+            headers={
+                "Authorization": "Bearer " + token,
+                "Accept": "application/vnd.pterodactyl.v1+json",
+                "User-Agent": "ptero-installer/" + __version__,
+            },
+        )
         try:
-            with self.ui.busy("Fetching the node configuration"), urllib.request.build_opener(NoRedirect()).open(request, timeout=30) as response:
+            with (
+                self.ui.busy("Fetching the node configuration"),
+                urllib.request.build_opener(NoRedirect()).open(request, timeout=30) as response,
+            ):
                 body = response.read(1024 * 1024 + 1)
             if len(body) > 1024 * 1024:
                 raise InstallerError("Node configuration is too large.")
@@ -129,6 +173,7 @@ class WingsMixin:
         self.run.secrets.update((config["token"], config["token_id"]))
         # JSON is a subset of YAML and Wings fills in the defaults.
         from .networking import wings_network
+
         wings_network(self, config)
         write_json(self.p.config, config)
         if state.get("method", "standalone") == "standalone":
@@ -145,6 +190,7 @@ class WingsMixin:
         state = self.load(self.p.wings_state)
         if state.get("method") == "docker":
             from .wings import DockerWings
+
             return DockerWings(self, state).start()
         self.run.run(["systemctl", "enable", "wings"], label="Enabling Wings")
         self.run.run(["systemctl", "restart", "wings"], label="Starting Wings with its current configuration")
@@ -177,21 +223,44 @@ class WingsMixin:
         post = self.p.root / "usr/local/sbin/ptero-acme-post"
         flag = self.p.root / "run/ptero-acme-panel-running"
         command = f"docker compose --project-name {PROJECT} --file {shlex.quote(str(self.p.compose))}"
-        atomic_write(pre, "#!/bin/sh\nset -eu\n" +
-                     f"if [ -f {shlex.quote(str(self.p.compose))} ] && {command} ps --services --status running | grep -qx panel; then\n" +
-                     f"  touch {shlex.quote(str(flag))}\n  {command} stop panel\nfi\n", 0o700)
-        atomic_write(post, "#!/bin/sh\nset -eu\n" +
-                     f"if [ -f {shlex.quote(str(flag))} ]; then\n  {command} up -d panel\n" +
-                     f"  rm -f {shlex.quote(str(flag))}\nfi\n", 0o700)
+        atomic_write(
+            pre,
+            "#!/bin/sh\nset -eu\n"
+            + f"if [ -f {shlex.quote(str(self.p.compose))} ] && {command} ps --services --status running | grep -qx panel; then\n"
+            + f"  touch {shlex.quote(str(flag))}\n  {command} stop panel\nfi\n",
+            0o700,
+        )
+        atomic_write(
+            post,
+            "#!/bin/sh\nset -eu\n"
+            + f"if [ -f {shlex.quote(str(flag))} ]; then\n  {command} up -d panel\n"
+            + f"  rm -f {shlex.quote(str(flag))}\nfi\n",
+            0o700,
+        )
         atomic_write(self.p.hook, self.wings_renew_hook(), 0o700)
         was_running = panel and panel["http_port"] == 80 and "panel" in self.running_services()
         try:
             if was_running:
                 self.dc("stop", "panel", label="Releasing port 80 for the node certificate")
             self.port_free("0.0.0.0", 80)
-            self.run.run(["certbot", "certonly", "--standalone", "--non-interactive", "--agree-tos",
-                          "--email", email, "-d", domain, "--pre-hook", pre, "--post-hook", post],
-                         label="Issuing the Wings certificate")
+            self.run.run(
+                [
+                    "certbot",
+                    "certonly",
+                    "--standalone",
+                    "--non-interactive",
+                    "--agree-tos",
+                    "--email",
+                    email,
+                    "-d",
+                    domain,
+                    "--pre-hook",
+                    pre,
+                    "--post-hook",
+                    post,
+                ],
+                label="Issuing the Wings certificate",
+            )
         finally:
             if was_running:
                 self.dc("up", "-d", "--wait", "--wait-timeout", "360", "panel")
@@ -200,6 +269,7 @@ class WingsMixin:
 
     def wings_renew_hook(self):
         from .wings import renewal_hook
+
         return renewal_hook(self)
 
     def backup_wings(self):
@@ -213,6 +283,7 @@ class WingsMixin:
                 (target / path.name).chmod(0o600)
         self.ui.say(f"Wings configuration saved: {target}", "ok")
         from .retention import prune
+
         prune(self)
         return target
 
@@ -223,9 +294,11 @@ class WingsMixin:
             self.ui.say("This version is already installed.", "ok")
             return
         from .compat import check
+
         check(self, wings=release["tag_name"])
         if state.get("method") == "docker":
             from .wings import DockerWings
+
             return DockerWings(self, state).update(release)
         self.ui.confirm("UPDATE WINGS")
         staged = self.p.wings.with_name(".wings-installer-new")
@@ -259,6 +332,7 @@ class WingsMixin:
         state = self.load(self.p.wings_state)
         if state.get("method") == "docker":
             from .wings import DockerWings
+
             return DockerWings(self, state).uninstall(confirmed)
         if not confirmed:
             self.ui.confirm("UNINSTALL WINGS")

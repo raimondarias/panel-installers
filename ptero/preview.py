@@ -1,4 +1,5 @@
 """In-memory simulator: no Runner, paths, subprocesses or service backends."""
+
 import copy
 import sys
 import time
@@ -55,25 +56,32 @@ class Simulation:
                     time.sleep(0.7)
 
     def inventory(self):
-        return {"panel": "ready" if self.panel else "absent",
-                "wings": self.wings["status"] if self.wings else "absent",
-                "database": "ready" if self.database else "absent",
-                "credentials": bool(self.panel and self.panel.get("game_database", {}).get("registered")),
-                "backup_profile": "ready" if self.backup_profile else "absent",
-                "interrupted": bool(self.wings and self.wings.get("status") != "ready"),
-                "url": self.panel["url"] if self.panel else "",
-                "rollback": bool(self.panel and self.panel.get("previous_version")),
-                **({"panel_version": self.panel["version"]} if self.panel else {}),
-                **({"wings_version": self.wings["version"]} if self.wings and self.wings.get("version") else {})}
+        return {
+            "panel": "ready" if self.panel else "absent",
+            "wings": self.wings["status"] if self.wings else "absent",
+            "database": "ready" if self.database else "absent",
+            "credentials": bool(self.panel and self.panel.get("game_database", {}).get("registered")),
+            "backup_profile": "ready" if self.backup_profile else "absent",
+            "interrupted": bool(self.wings and self.wings.get("status") != "ready"),
+            "url": self.panel["url"] if self.panel else "",
+            "rollback": bool(self.panel and self.panel.get("previous_version")),
+            **({"panel_version": self.panel["version"]} if self.panel else {}),
+            **({"wings_version": self.wings["version"]} if self.wings and self.wings.get("version") else {}),
+        }
 
     def install_panel(self):
         if self.panel:
             self.ui.say("The simulated Panel already exists. Use maintenance or reset the preview.")
             return
         state = panel_plan(self)
-        self.stages("Preparing dependencies", "Preparing the database and cache", "Deploying Panel files",
-                    "Running migrations and creating the administrator", "Configuring the web server and scheduler",
-                    "Checking simulated services")
+        self.stages(
+            "Preparing dependencies",
+            "Preparing the database and cache",
+            "Deploying Panel files",
+            "Running migrations and creating the administrator",
+            "Configuring the web server and scheduler",
+            "Checking simulated services",
+        )
         state["status"] = "ready"
         self.panel = state
         self.register_database(state["game_database"])
@@ -90,8 +98,16 @@ class Simulation:
 
     def credentials(self):
         settings = self.panel["game_database"]
-        self.ui.card("Game database host is ready", [NOTICE, Literal(f"{settings['host']}:{settings['port']}"),
-            Literal(settings["username"]), Literal(settings["password"]), "Simulation credentials disappear when you exit."])
+        self.ui.card(
+            "Game database host is ready",
+            [
+                NOTICE,
+                Literal(f"{settings['host']}:{settings['port']}"),
+                Literal(settings["username"]),
+                Literal(settings["password"]),
+                "Simulation credentials disappear when you exit.",
+            ],
+        )
 
     def install_wings(self):
         if self.wings:
@@ -99,9 +115,13 @@ class Simulation:
             return
         self.ui.step(1, 3, "Wings installation")
         release = self.choose_release("wings", WINGS_VERSION)
-        method = self.ui.choice("Wings deployment", [
-            ("standalone", "Standalone daemon (Recommended)", "A systemd service managing Docker game containers"),
-            ("docker", "Docker container", "A Wings container with host networking and Docker socket access")])
+        method = self.ui.choice(
+            "Wings deployment",
+            [
+                ("standalone", "Standalone daemon (Recommended)", "A systemd service managing Docker game containers"),
+                ("docker", "Docker container", "A Wings container with host networking and Docker socket access"),
+            ],
+        )
         self.ui.confirm("INSTALL WINGS")
         self.ui.step(2, 3, "Deploying Wings")
         self.stages("Preparing dependencies", "Deploying Wings", "Checking simulated services")
@@ -111,13 +131,19 @@ class Simulation:
 
     def link_wings(self):
         from .node_plan import connection
+
         self.ui.step(3, 3, "Node connection")
         if self.panel:
-            method = self.ui.choice("Node connection method", [
-                ("automatic", "Create node automatically (Recommended)", "Create location, node and allocations, then configure Wings"),
-                ("manual", "Use an existing node token", "Link a node already created in the Panel")])
+            method = self.ui.choice(
+                "Node connection method",
+                [
+                    ("automatic", "Create node automatically (Recommended)", "Create location, node and allocations, then configure Wings"),
+                    ("manual", "Use an existing node token", "Link a node already created in the Panel"),
+                ],
+            )
             if method == "automatic":
                 from .nodes import plan
+
                 self.created_node = plan(self)
                 self.ui.confirm("CREATE NODE")
                 self.stages("Creating node and allocations", "Checking simulated services")
@@ -132,6 +158,7 @@ class Simulation:
 
     def tls_wings(self):
         from .core import valid_domain, valid_email
+
         self.ui.ask("Wings domain, e.g. node.example.com", validator=valid_domain)
         self.ui.ask("Let's Encrypt email", validator=valid_email)
         self.ui.confirm("ISSUE WINGS SSL")
@@ -143,15 +170,18 @@ class Simulation:
             raise InstallerError(reason)
         if action == "create-node":
             from .nodes import plan
+
             data = plan(self)
             self.ui.confirm("CREATE NODE")
             self.stages("Creating node and allocations")
             self.created_node = data
         elif action in ("remote-node", "remote-database"):
             from .remote import target_plan, database_plan
+
             target_plan(self, preview=True)
             if action == "remote-node":
                 from .nodes import plan
+
                 self.created_node = plan(self)
             else:
                 database_plan(self)
@@ -165,6 +195,7 @@ class Simulation:
                 self.link_wings()
         elif action == "backup-schedule":
             from .backups import backup_plan
+
             profile, password = backup_plan(self.ui)
             self.run.secrets.add(password)
             self.ui.confirm("CONFIGURE BACKUPS")
@@ -187,6 +218,7 @@ class Simulation:
             self.tls_wings()
         elif action == "configure-database":
             from .game_database import plan
+
             settings = plan(self, self.panel, advanced=True)
             if settings["mode"] != "later":
                 self.ui.confirm("INSTALL PANEL")
@@ -203,8 +235,9 @@ class Simulation:
             self.ui.confirm("INSTALL PANEL")
             self.stages("Running migrations and creating the administrator")
             if self.generated_admin_password:
-                self.ui.card("Save your generated password", [Literal(self.admin_password),
-                    "Simulation credentials disappear when you exit."])
+                self.ui.card(
+                    "Save your generated password", [Literal(self.admin_password), "Simulation credentials disappear when you exit."]
+                )
         elif action in ("backup-panel", "backup-wings"):
             key = action.removeprefix("backup-")
             self.stages("Creating a simulated backup", "Verifying the simulated backup")
@@ -230,10 +263,14 @@ class Simulation:
             state = self.panel if component == "panel" else self.wings
             release = self.choose_release(component, state["version"])
             if component == "panel":
-                self.ui.card("Panel update plan", [
-                    self.ui.tr("Update: {current} → {target}").format(current=state["version"], target=release["tag_name"]),
-                    "A verified backup is created before any code or database change.",
-                    self.ui.tr("If anything fails, you can roll back to {version}.").format(version=state["version"])])
+                self.ui.card(
+                    "Panel update plan",
+                    [
+                        self.ui.tr("Update: {current} → {target}").format(current=state["version"], target=release["tag_name"]),
+                        "A verified backup is created before any code or database change.",
+                        self.ui.tr("If anything fails, you can roll back to {version}.").format(version=state["version"]),
+                    ],
+                )
             self.ui.confirm("UPDATE PREVIEW")
             self.stages("Creating a simulated backup", "Deploying the simulated update", "Checking simulated services")
             if component == "panel":
@@ -245,11 +282,15 @@ class Simulation:
             self.ui.say(self.ui.tr("Currently kept: {value}").format(value=value))
         elif action == "rollback-panel":
             previous = self.panel.pop("previous_version")
-            self.ui.card("Panel rollback plan", [
-                self.ui.tr("Installed: {value}").format(value=self.panel["version"]),
-                self.ui.tr("Roll back to: {value}").format(value=previous),
-                "Panel changes made after this backup will be lost.",
-                "A safety copy of the current Panel is created first."])
+            self.ui.card(
+                "Panel rollback plan",
+                [
+                    self.ui.tr("Installed: {value}").format(value=self.panel["version"]),
+                    self.ui.tr("Roll back to: {value}").format(value=previous),
+                    "Panel changes made after this backup will be lost.",
+                    "A safety copy of the current Panel is created first.",
+                ],
+            )
             self.ui.confirm("ROLL BACK PANEL")
             self.stages("Creating a simulated backup", "Restoring the pre-update database", "Starting the previous Panel version")
             self.panel["version"] = previous
@@ -257,15 +298,22 @@ class Simulation:
             self.ui.confirm("RESTART PREVIEW")
             self.stages("Restarting simulated services", "Checking simulated services")
         elif action in ("diagnose", "logs", "firewall"):
-            self.ui.card("Interface preview", [NOTICE, "All statuses and checks in this session are simulated.",
-                self.ui.tr("Panel URL: {value}").format(value=self.panel["url"] if self.panel else "—"),
-                "Panel: TCP 80/443 · Wings: TCP 8080/2022 · Games: per allocation"])
+            self.ui.card(
+                "Interface preview",
+                [
+                    NOTICE,
+                    "All statuses and checks in this session are simulated.",
+                    self.ui.tr("Panel URL: {value}").format(value=self.panel["url"] if self.panel else "—"),
+                    "Panel: TCP 80/443 · Wings: TCP 8080/2022 · Games: per allocation",
+                ],
+            )
         else:
             raise InstallerError("Unknown preview action: " + action)
 
 
 class TourUI:
     """Exercise the real form for redirected output, without input/getpass."""
+
     def __init__(self, ui):
         self.base = ui
 
@@ -279,23 +327,32 @@ class TourUI:
         return value
 
     def ask(self, label, default=None, validator=None, secret=False):
-        values = {"Domain / subdomain (without http://)": "panel.example.com",
-                  "Administrator email": "admin@example.com", "Administrator username": "admin",
-                  "Administrator password (12+ characters; empty generates one)": "Preview-only-password-123!",
-                  "Confirm administrator password": "Preview-only-password-123!",
-                  "SMTP host": "smtp.example.com", "SMTP username": "admin@example.com",
-                  "SMTP password": "preview-smtp-password", "Panel URL": "https://panel.example.com",
-                  "Numeric node ID": "1", "Auto-Deploy token": "preview-token",
-                  "Wings domain, e.g. node.example.com": "node.example.com",
-                  "Let's Encrypt email": "admin@example.com",
-                  "Database host password (16+ characters; empty generates one)": "",
-                  "Node hostname / IPv4": "node.example.com", "Allocation IPv4 address": "93.184.216.34",
-                  "Backup encryption password (16+ characters)": "preview-backup-password-123!",
-                  "Confirm backup encryption password": "preview-backup-password-123!",
-                  "Restic repository (local path, sftp: or s3:)": "s3:https://storage.example.com/ptero",
-                  "S3 access key": "preview-access-key", "S3 secret key": "preview-secret-key",
-                  "Remote SSH hostname / IPv4": "node.example.com", "Remote SQL private IPv4": "10.20.0.2",
-                  "Allowed private source IPv4 addresses (comma separated)": "10.20.0.1"}
+        values = {
+            "Domain / subdomain (without http://)": "panel.example.com",
+            "Administrator email": "admin@example.com",
+            "Administrator username": "admin",
+            "Administrator password (12+ characters; empty generates one)": "Preview-only-password-123!",
+            "Confirm administrator password": "Preview-only-password-123!",
+            "SMTP host": "smtp.example.com",
+            "SMTP username": "admin@example.com",
+            "SMTP password": "preview-smtp-password",
+            "Panel URL": "https://panel.example.com",
+            "Numeric node ID": "1",
+            "Auto-Deploy token": "preview-token",
+            "Wings domain, e.g. node.example.com": "node.example.com",
+            "Let's Encrypt email": "admin@example.com",
+            "Database host password (16+ characters; empty generates one)": "",
+            "Node hostname / IPv4": "node.example.com",
+            "Allocation IPv4 address": "93.184.216.34",
+            "Backup encryption password (16+ characters)": "preview-backup-password-123!",
+            "Confirm backup encryption password": "preview-backup-password-123!",
+            "Restic repository (local path, sftp: or s3:)": "s3:https://storage.example.com/ptero",
+            "S3 access key": "preview-access-key",
+            "S3 secret key": "preview-secret-key",
+            "Remote SSH hostname / IPv4": "node.example.com",
+            "Remote SQL private IPv4": "10.20.0.2",
+            "Allowed private source IPv4 addresses (comma separated)": "10.20.0.1",
+        }
         value = values.get(label, default)
         if value is None or (validator and not validator(value)):
             raise InstallerError("No valid tour answer: " + label)
@@ -330,6 +387,7 @@ def show(ui, action=None):
         return
     from .cli import ENTRIES, select_language
     from .navigation import Item
+
     while True:
         items = menu_items(ENTRIES, simulation.inventory())
         items.insert(-2, Item("reset", "Reset preview", "Clear simulated components and backups.", shortcut="99", group="Preferences"))

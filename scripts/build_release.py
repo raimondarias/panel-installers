@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Build a relocatable source archive and a single-file, self-extracting launcher."""
+
 import hashlib
 import io
 from pathlib import Path
@@ -11,8 +12,11 @@ OUTPUT = ROOT.parent
 
 
 def build():
-    files = sorted(path for path in ROOT.rglob("*") if path.is_file()
-                   and not any(part in ("__pycache__", ".venv", ".git") for part in path.relative_to(ROOT).parts))
+    files = sorted(
+        path
+        for path in ROOT.rglob("*")
+        if path.is_file() and not any(part in ("__pycache__", ".venv", ".git") for part in path.relative_to(ROOT).parts)
+    )
     memory = io.BytesIO()
     with tarfile.open(fileobj=memory, mode="w:gz") as archive:
         for file in files:

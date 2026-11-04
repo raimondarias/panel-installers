@@ -6,6 +6,7 @@ the active update rollback point, the rollback safety copy, copies owned by the
 encrypted schedule (it applies its own retention), symlinks or anything whose
 name or contents the installer did not create.
 """
+
 import json
 import re
 import shutil
@@ -69,7 +70,10 @@ def candidates(installer):
             entries = list(path.iterdir())
             if all(item.name in WINGS_FILES and item.is_file() and not item.is_symlink() for item in entries):
                 wings.append(path)
-    newest = lambda item: item.stat().st_mtime
+
+    def newest(item):
+        return item.stat().st_mtime
+
     return sorted(panel, key=newest, reverse=True), sorted(wings, key=newest, reverse=True)
 
 
@@ -89,8 +93,12 @@ def prune(installer, keep=None):
                 (path.parent / (path.name + ".sha256")).unlink(missing_ok=True)
             removed += 1
     if removed:
-        installer.ui.say(installer.ui.tr("Removed {count} older local backups; keeping the newest {keep} of each kind.")
-                         .format(count=removed, keep=keep), "muted")
+        installer.ui.say(
+            installer.ui.tr("Removed {count} older local backups; keeping the newest {keep} of each kind.").format(
+                count=removed, keep=keep
+            ),
+            "muted",
+        )
     return removed
 
 
@@ -98,14 +106,17 @@ def configure(installer):
     ui = installer.ui
     current = keep_count(installer)
     panel, wings = candidates(installer)
-    ui.card("Local backup retention", [
-        ui.tr("Panel archives on this server: {value}").format(value=len(panel)),
-        ui.tr("Wings configuration copies on this server: {value}").format(value=len(wings)),
-        ui.tr("Currently kept: {value}").format(value=current or ui.tr("all")),
-        "The active rollback point, its safety copy and scheduled copies are never removed.",
-        "Copies are pruned after each new backup. 0 keeps every copy."])
-    value = ui.ask("Copies of each kind to keep (0-100)", str(current),
-                   lambda text: text.isdigit() and 0 <= int(text) <= MAXIMUM_KEEP)
+    ui.card(
+        "Local backup retention",
+        [
+            ui.tr("Panel archives on this server: {value}").format(value=len(panel)),
+            ui.tr("Wings configuration copies on this server: {value}").format(value=len(wings)),
+            ui.tr("Currently kept: {value}").format(value=current or ui.tr("all")),
+            "The active rollback point, its safety copy and scheduled copies are never removed.",
+            "Copies are pruned after each new backup. 0 keeps every copy.",
+        ],
+    )
+    value = ui.ask("Copies of each kind to keep (0-100)", str(current), lambda text: text.isdigit() and 0 <= int(text) <= MAXIMUM_KEEP)
     write_json(settings_path(installer), {"schema": SCHEMA, "owner": PROJECT, "keep_local_backups": int(value)})
     prune(installer, int(value))
     ui.say("Local backup retention saved.", "ok")

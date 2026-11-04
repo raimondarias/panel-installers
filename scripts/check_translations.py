@@ -6,6 +6,7 @@ card, busy, step, choice, tr, record, result) and InstallerError/Cancelled
 messages. f-strings are compared as catalogue templates ({value1}, {value2}...).
 Exit status 1 lists the missing messages; 0 means the catalogue is complete.
 """
+
 import ast
 import json
 import re

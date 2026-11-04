@@ -1,4 +1,5 @@
 """Command execution with secret redaction, and managed filesystem locations."""
+
 import contextlib
 import os
 from pathlib import Path
@@ -10,9 +11,18 @@ from .common import InstallerError
 
 # Credentials that callers pass explicitly (``env=``) must never leak by
 # inheritance into unrelated commands such as apt-get, docker or ssh.
-PRIVATE_ENVIRONMENT = frozenset(("PTERO_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN", "RESTIC_PASSWORD",
-                                 "RESTIC_PASSWORD_FILE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
-                                 "AWS_SESSION_TOKEN"))
+PRIVATE_ENVIRONMENT = frozenset(
+    (
+        "PTERO_GITHUB_TOKEN",
+        "GITHUB_TOKEN",
+        "GH_TOKEN",
+        "RESTIC_PASSWORD",
+        "RESTIC_PASSWORD_FILE",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+    )
+)
 LOG_LIMIT = 5 * 1024 * 1024
 LOG_GENERATIONS = 3
 
@@ -31,8 +41,7 @@ class Runner:
         for secret in sorted(self.secrets, key=len, reverse=True):
             if secret:
                 text = text.replace(secret, "[REDACTED]")
-        text = re.sub(r"(?i)((?:password|token(?:_id)?|app_key|hashids_salt)[\"']?\s*[:=]\s*)[^\s,]+",
-                      r"\1[REDACTED]", text)
+        text = re.sub(r"(?i)((?:password|token(?:_id)?|app_key|hashids_salt)[\"']?\s*[:=]\s*)[^\s,]+", r"\1[REDACTED]", text)
         text = re.sub(r"(?i)Bearer\s+\S+", "Bearer [REDACTED]", text)
         text = re.sub(r"ptl[a-z]_[A-Za-z0-9_-]+", "[REDACTED TOKEN]", text)
         return text
@@ -57,19 +66,29 @@ class Runner:
             self.log.chmod(0o600)
             stream.write(self.redact(text) + "\n")
 
-    def run(self, args, label=None, interactive=False, output=None, input_file=None,
-            check=True, timeout=1800, env=None, umask=0o077, cwd=None):
+    def run(
+        self, args, label=None, interactive=False, output=None, input_file=None, check=True, timeout=1800, env=None, umask=0o077, cwd=None
+    ):
         args = [str(arg) for arg in args]
         self.record("$ " + " ".join(args))
         # Temporary files avoid holding SQL dumps and apt output in memory.
         with tempfile.TemporaryFile() as captured, tempfile.TemporaryFile() as errors:
-            with (self.ui.busy(label) if label and not interactive else contextlib.nullcontext()), (self.ui.suspend() if interactive else contextlib.nullcontext()):
+            with (
+                self.ui.busy(label) if label and not interactive else contextlib.nullcontext(),
+                self.ui.suspend() if interactive else contextlib.nullcontext(),
+            ):
                 try:
                     result = subprocess.run(
-                        args, stdin=input_file, stdout=None if interactive else (output or captured),
-                        stderr=None if interactive else errors, check=False,
+                        args,
+                        stdin=input_file,
+                        stdout=None if interactive else (output or captured),
+                        stderr=None if interactive else errors,
+                        check=False,
                         timeout=None if interactive else timeout,
-                        env=child_environment(env), umask=umask, cwd=cwd)
+                        env=child_environment(env),
+                        umask=umask,
+                        cwd=cwd,
+                    )
                 except (OSError, subprocess.TimeoutExpired) as exc:
                     raise InstallerError(f"Unable to execute {args[0]}: {exc}") from exc
             captured.seek(0)

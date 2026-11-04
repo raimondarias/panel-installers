@@ -24,3 +24,9 @@ select = ["E4", "E7", "E9", "E501", "F", "W"]
 # ptero.core re-exports the historical public API on purpose.
 "ptero/core.py" = ["F401"]
 "installer.py" = ["F401", "F403", "F405"]
+# Embedded PHP and Python programs sent to remote hosts are kept verbatim.
+"ptero/nodes.py" = ["E501"]
+"ptero/remote.py" = ["E501"]
+
+[tool.ruff.format]
+quote-style = "preserve"

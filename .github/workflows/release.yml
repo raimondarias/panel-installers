@@ -39,8 +39,6 @@ jobs:
       - name: Lint and regression tests
         if: steps.version.outputs.publish == 'true'
         run: |
-          python3 -m ruff check .
-          python3 scripts/check_translations.py
           bash tests/run.sh
       - name: Build release assets
         if: steps.version.outputs.publish == 'true'

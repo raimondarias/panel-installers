@@ -1,4 +1,5 @@
 """Local retention of Panel archives and Wings configuration copies."""
+
 import json
 import os
 from pathlib import Path

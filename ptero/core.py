@@ -4,6 +4,7 @@
 The implementation lives in focused modules; this module composes the Installer
 and re-exports the historical public API (``from ptero.core import ...``).
 """
+
 # These module imports are part of the historical namespace: ``installer.py``
 # star-imports it and integrations patch names such as ``ptero.core.time.sleep``.
 import argparse
@@ -35,9 +36,26 @@ import uuid
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from . import __version__
-from .common import (PANEL_VERSION, PROJECT, SCHEMA, WINGS_VERSION, Cancelled, InstallerError, NoRedirect,
-                     atomic_write, node_configuration, read_json, secure_extract, valid_domain, valid_email,
-                     valid_host, valid_url, valid_version, version_key, write_json)
+from .common import (
+    PANEL_VERSION,
+    PROJECT,
+    SCHEMA,
+    WINGS_VERSION,
+    Cancelled,
+    InstallerError,
+    NoRedirect,
+    atomic_write,
+    node_configuration,
+    read_json,
+    secure_extract,
+    valid_domain,
+    valid_email,
+    valid_host,
+    valid_url,
+    valid_version,
+    version_key,
+    write_json,
+)
 from .ui import UI
 from .runtime import Paths, Runner
 from .host import HostMixin
