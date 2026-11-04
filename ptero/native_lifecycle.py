@@ -135,6 +135,8 @@ class NativeLifecycleMixin:
             partial.chmod(0o600)
             os.replace(partial, target)
             write_checksum(target)
+            from .retention import prune
+            prune(self.i)
             self.ui.say("Backup created: {path}".format(path=target), "ok")
             return target
         finally:

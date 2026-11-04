@@ -302,6 +302,8 @@ class PanelMixin:
             temporary.chmod(0o600)
             os.replace(temporary, target)
             write_checksum(target)
+            from .retention import prune
+            prune(self)
             self.ui.say(f"Backup created: {target} (contains secrets; keep an off-server copy)", "ok")
             return target
         except BaseException:

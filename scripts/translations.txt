@@ -799,3 +799,16 @@ The download exceeds its size limit.|||La descarga supera su límite de tamaño.
 No IPv4 game database network was found.|||No se encontró ninguna red IPv4 para las bases de datos de juegos.|||Nenhuma rede IPv4 foi encontrada para os bancos de dados de jogos.
 The SQL configuration contains an invalid private network.|||La configuración SQL contiene una red privada no válida.|||A configuração SQL contém uma rede privada inválida.
 Native game SQL data is incomplete; recover this SQL instance outside the installer before continuing.|||Los datos del SQL nativo de juegos están incompletos; recupera esta instancia SQL fuera del instalador antes de continuar.|||Os dados do SQL nativo de jogos estão incompletos; recupere esta instância SQL fora do instalador antes de continuar.
+# 1.3.0: local backup retention
+Removed {count} older local backups; keeping the newest {keep} of each kind.|||Se eliminaron {count} copias locales antiguas; se conservan las {keep} más recientes de cada tipo.|||{count} backups locais antigos foram removidos; os {keep} mais recentes de cada tipo foram mantidos.
+Local backup retention|||Retención de copias locales|||Retenção de backups locais
+Panel archives on this server: {value}|||Copias del Panel en este servidor: {value}|||Backups do Painel neste servidor: {value}
+Wings configuration copies on this server: {value}|||Copias de configuración de Wings en este servidor: {value}|||Cópias da configuração do Wings neste servidor: {value}
+Currently kept: {value}|||Se conservan actualmente: {value}|||Mantidos atualmente: {value}
+all|||todas|||todos
+The active rollback point, its safety copy and scheduled copies are never removed.|||Nunca se eliminan el punto de reversión activo, su copia de seguridad ni las copias programadas.|||O ponto de reversão ativo, seu backup de segurança e as cópias agendadas nunca são removidos.
+Copies are pruned after each new backup. 0 keeps every copy.|||Las copias se depuran tras cada backup nuevo. 0 conserva todas.|||As cópias são podadas após cada novo backup. 0 mantém todas.
+Copies of each kind to keep (0-100)|||Copias de cada tipo que se conservan (0-100)|||Cópias de cada tipo a manter (0-100)
+Local backup retention saved.|||Retención de copias locales guardada.|||Retenção de backups locais salva.
+Choose how many local Panel and Wings copies to keep on this server.|||Elige cuántas copias locales del Panel y de Wings conservar en este servidor.|||Escolha quantas cópias locais do Painel e do Wings manter neste servidor.
+Saving the simulated retention setting|||Guardando el ajuste de retención simulado|||Salvando a configuração de retenção simulada

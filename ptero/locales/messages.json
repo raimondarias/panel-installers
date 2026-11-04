@@ -3968,5 +3968,65 @@
     "en": "Native game SQL data is incomplete; recover this SQL instance outside the installer before continuing.",
     "es": "Los datos del SQL nativo de juegos están incompletos; recupera esta instancia SQL fuera del instalador antes de continuar.",
     "pt-BR": "Os dados do SQL nativo de jogos estão incompletos; recupere esta instância SQL fora do instalador antes de continuar."
+  },
+  "Removed {count} older local backups; keeping the newest {keep} of each kind.": {
+    "en": "Removed {count} older local backups; keeping the newest {keep} of each kind.",
+    "es": "Se eliminaron {count} copias locales antiguas; se conservan las {keep} más recientes de cada tipo.",
+    "pt-BR": "{count} backups locais antigos foram removidos; os {keep} mais recentes de cada tipo foram mantidos."
+  },
+  "Local backup retention": {
+    "en": "Local backup retention",
+    "es": "Retención de copias locales",
+    "pt-BR": "Retenção de backups locais"
+  },
+  "Panel archives on this server: {value}": {
+    "en": "Panel archives on this server: {value}",
+    "es": "Copias del Panel en este servidor: {value}",
+    "pt-BR": "Backups do Painel neste servidor: {value}"
+  },
+  "Wings configuration copies on this server: {value}": {
+    "en": "Wings configuration copies on this server: {value}",
+    "es": "Copias de configuración de Wings en este servidor: {value}",
+    "pt-BR": "Cópias da configuração do Wings neste servidor: {value}"
+  },
+  "Currently kept: {value}": {
+    "en": "Currently kept: {value}",
+    "es": "Se conservan actualmente: {value}",
+    "pt-BR": "Mantidos atualmente: {value}"
+  },
+  "all": {
+    "en": "all",
+    "es": "todas",
+    "pt-BR": "todos"
+  },
+  "The active rollback point, its safety copy and scheduled copies are never removed.": {
+    "en": "The active rollback point, its safety copy and scheduled copies are never removed.",
+    "es": "Nunca se eliminan el punto de reversión activo, su copia de seguridad ni las copias programadas.",
+    "pt-BR": "O ponto de reversão ativo, seu backup de segurança e as cópias agendadas nunca são removidos."
+  },
+  "Copies are pruned after each new backup. 0 keeps every copy.": {
+    "en": "Copies are pruned after each new backup. 0 keeps every copy.",
+    "es": "Las copias se depuran tras cada backup nuevo. 0 conserva todas.",
+    "pt-BR": "As cópias são podadas após cada novo backup. 0 mantém todas."
+  },
+  "Copies of each kind to keep (0-100)": {
+    "en": "Copies of each kind to keep (0-100)",
+    "es": "Copias de cada tipo que se conservan (0-100)",
+    "pt-BR": "Cópias de cada tipo a manter (0-100)"
+  },
+  "Local backup retention saved.": {
+    "en": "Local backup retention saved.",
+    "es": "Retención de copias locales guardada.",
+    "pt-BR": "Retenção de backups locais salva."
+  },
+  "Choose how many local Panel and Wings copies to keep on this server.": {
+    "en": "Choose how many local Panel and Wings copies to keep on this server.",
+    "es": "Elige cuántas copias locales del Panel y de Wings conservar en este servidor.",
+    "pt-BR": "Escolha quantas cópias locais do Painel e do Wings manter neste servidor."
+  },
+  "Saving the simulated retention setting": {
+    "en": "Saving the simulated retention setting",
+    "es": "Guardando el ajuste de retención simulado",
+    "pt-BR": "Salvando a configuração de retenção simulada"
   }
 }

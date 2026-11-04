@@ -39,6 +39,10 @@ class MaintenanceMixin:
         from .backups import ScheduledBackups
         return ScheduledBackups(self).download()
 
+    def backup_retention(self):
+        from .retention import configure
+        return configure(self)
+
     def remote_node(self):
         from .remote import setup_node
         return setup_node(self)
@@ -206,7 +210,7 @@ class MaintenanceMixin:
                 "database-credentials": self.game_database_credentials,
                 "create-node": self.create_node,
                 "backup-schedule": self.backup_schedule, "backup-run": self.backup_run,
-                "backup-download": self.backup_download, "health": self.health_report,
+                "backup-download": self.backup_download, "backup-retention": self.backup_retention, "health": self.health_report,
                 "resume": self.resume, "remote-node": self.remote_node, "remote-database": self.remote_database}
 
     def menu(self):

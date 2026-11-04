@@ -35,7 +35,7 @@ ENTRIES = [
     ("Show database host credentials", "database-credentials"),
     ("Create node and allocations", "create-node"),
     ("Schedule encrypted backups", "backup-schedule"), ("Run scheduled backup now", "backup-run"),
-    ("Download remote backup", "backup-download"), ("Detailed health report", "health"),
+    ("Download remote backup", "backup-download"), ("Local backup retention", "backup-retention"), ("Detailed health report", "health"),
     ("Resume installation", "resume"), ("Install remote Wings node", "remote-node"),
     ("Prepare remote game SQL", "remote-database"),
 ]

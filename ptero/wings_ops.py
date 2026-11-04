@@ -210,6 +210,8 @@ class WingsMixin:
                 shutil.copy2(path, target / path.name)
                 (target / path.name).chmod(0o600)
         self.ui.say(f"Wings configuration saved: {target}", "ok")
+        from .retention import prune
+        prune(self)
         return target
 
     def update_wings(self):

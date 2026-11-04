@@ -95,7 +95,7 @@ class SimulationTests(unittest.TestCase):
         visited = set()
         with contextlib.redirect_stdout(io.StringIO()):
             for action in ("install-panel", "install-wings", "install-all", "configure-database",
-                           "create-node", "remote-node", "remote-database", "health", "backup-schedule", "backup-run", "backup-download",
+                           "create-node", "remote-node", "remote-database", "health", "backup-schedule", "backup-run", "backup-download", "backup-retention",
                            "database-credentials", "backup-panel", "backup-wings",
                            "configure-wings", "tls-wings", "update-panel", "rollback-panel", "update-wings", "smtp", "admin",
                            "diagnose", "restart", "logs", "firewall", "uninstall-all", "restore-panel",

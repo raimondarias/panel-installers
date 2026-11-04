@@ -239,6 +239,10 @@ class Simulation:
             if component == "panel":
                 state["previous_version"] = state["version"]
             state["version"] = release["tag_name"]
+        elif action == "backup-retention":
+            value = self.ui.ask("Copies of each kind to keep (0-100)", "5", lambda text: text.isdigit() and 0 <= int(text) <= 100)
+            self.stages("Saving the simulated retention setting")
+            self.ui.say(self.ui.tr("Currently kept: {value}").format(value=value))
         elif action == "rollback-panel":
             previous = self.panel.pop("previous_version")
             self.ui.card("Panel rollback plan", [

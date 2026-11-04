@@ -41,6 +41,7 @@ NOTES = {
     "backup-schedule": "Schedule encrypted copies of the Panel and Wings configuration only.",
     "backup-run": "Run the saved Panel and Wings configuration backup schedule now.",
     "backup-download": "Download and verify a saved encrypted Panel or Wings configuration backup.",
+    "backup-retention": "Choose how many local Panel and Wings copies to keep on this server.",
     "health": "Inspect this machine and report service failures with next steps.",
     "resume": "Continue an interrupted managed installation from its saved phases.",
     "create-node": "Create a location, node and allocations in your managed Panel.",
@@ -56,7 +57,7 @@ SHORTCUTS = dict(zip(("install-all", "install-panel", "install-wings", "uninstal
     "configure-database", "database-credentials"), map(str, range(1, 22))))
 SHORTCUTS.update({"create-node": "24", "backup-schedule": "28", "backup-run": "29", "backup-download": "30",
     "health": "31", "resume": "32", "remote-node": "33", "remote-database": "34",
-    "rollback-panel": "35"})
+    "rollback-panel": "35", "backup-retention": "36"})
 
 
 def inventory(installer):
