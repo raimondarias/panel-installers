@@ -84,17 +84,21 @@ def tui_preview(launcher, number, language, environment):
 
 
 def main():
-    commit = json.loads(fetch(f"https://api.github.com/repos/{REPOSITORY}/commits/main"))["sha"]
-    if not re.fullmatch(r"[0-9a-f]{40}", commit):
-        raise app.InstallerError("GitHub did not return a commit SHA.")
-    base = f"https://raw.githubusercontent.com/{REPOSITORY}/{commit}"
-    bootstrap = fetch(f"https://raw.githubusercontent.com/{REPOSITORY}/main/install.sh")
-    if bootstrap != fetch(base + "/install.sh") or f'VERSION="{__version__}"'.encode() not in bootstrap:
-        raise app.InstallerError("The published bootstrap does not match the expected version/snapshot.")
-    print(f"OK published main commit: {commit}", flush=True)
-    print(f"OK published installer version: {__version__}", flush=True)
+    tag = "v" + __version__
+    latest = json.loads(fetch(f"https://api.github.com/repos/{REPOSITORY}/releases/latest"))["tag_name"]
+    if latest != tag:
+        raise app.InstallerError(f"The latest published release is {latest}, expected {tag}.")
+    base = f"https://github.com/{REPOSITORY}/releases/download/{tag}"
+    sums = {line.split()[1]: line.split()[0] for line in fetch(base + "/SHA256SUMS").decode().splitlines()}
+    bootstrap = fetch(base + "/install.sh")
+    if hashlib.sha256(bootstrap).hexdigest() != sums.get("install.sh") or f'VERSION="{__version__}"'.encode() not in bootstrap:
+        raise app.InstallerError("The published bootstrap does not match its release checksum or version.")
+    if fetch(f"https://raw.githubusercontent.com/{REPOSITORY}/main/install.sh") != bootstrap:
+        raise app.InstallerError("main's install.sh differs from the latest release's bootstrap.")
+    print(f"OK published release: {tag}; bootstrap checksum verified", flush=True)
     environment = dict(os.environ)
-    environment.pop("PTERO_SOURCE_REF", None)
+    for name in ("PTERO_RELEASE_TAG", "PTERO_NO_SELF_UPDATE", "PTERO_SELF_UPDATED"):
+        environment.pop(name, None)
     with tempfile.TemporaryDirectory(prefix="ptero-published-check-") as directory:
         work = Path(directory)
         launcher = work / "install.sh"
@@ -107,12 +111,11 @@ def main():
                                     timeout=240, env=environment)
             if result.returncode or expected not in result.stdout or result.stdout.count("Which language would you like to use?") != 1:
                 raise app.InstallerError(f"Published {language} preview failed: " + result.stderr[-2000:])
-            print(f"OK real GitHub download and preview: {language}; one English language question", flush=True)
+            print(f"OK real GitHub release download and preview: {language}; one English language question", flush=True)
             tui_preview(launcher, number, language, environment)
             print(f"OK published full-screen TUI: {language}; mouse language/action selection, wizard cancellation and terminal restoration", flush=True)
-        payload = fetch(base + "/languages/en/installer.tar.gz")
-        checksum = fetch(base + "/languages/en/installer.tar.gz.sha256").decode().split()[0]
-        if hashlib.sha256(payload).hexdigest() != checksum:
+        payload = fetch(base + "/installer-en.tar.gz")
+        if hashlib.sha256(payload).hexdigest() != sums.get("installer-en.tar.gz"):
             raise app.InstallerError("The published English archive checksum is invalid.")
         archive = work / "runtime.tar.gz"
         archive.write_bytes(payload)
@@ -121,7 +124,7 @@ def main():
         code = ("import json;from ptero.i18n import Translator;"
                 "print(json.dumps({language:Translator(language)('Choose an option') "
                 "for language in ('en','es','pt-BR')},ensure_ascii=False))")
-        environment.update(PTERO_SOURCE_REF=commit, PYTHONPATH="")
+        environment.update(PTERO_RELEASE_TAG=tag, PYTHONPATH="")
         result = subprocess.run([sys.executable, "-c", code], cwd=runtime, capture_output=True,
                                 text=True, env=environment, timeout=120)
         if result.returncode:
@@ -129,7 +132,7 @@ def main():
         translated = json.loads(result.stdout)
         if translated != {"en": "Choose an option", "es": "Elige una opción", "pt-BR": "Escolha uma opção"}:
             raise app.InstallerError("Published language changes returned unexpected translations.")
-        print("OK real GitHub language changes: en -> es -> pt-BR; snapshot and hashes verified", flush=True)
+        print("OK real GitHub language changes: en -> es -> pt-BR; release assets and hashes verified", flush=True)
     print("This distribution smoke check installs no services. Real VM deployment results are recorded separately.", flush=True)
 
 

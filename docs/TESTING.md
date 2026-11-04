@@ -4,7 +4,7 @@ Local tests use Python's standard-library unittest, temporary filesystem roots a
 
 Covered behavior includes:
 
-- English-first online startup question, followed by downloads from only the selected `languages/en`, `languages/es` or `languages/pt-BR` directory.
+- English-first online startup question, followed by a release check, then downloads of only the selected `installer-en`, `installer-es` or `installer-pt-BR` release asset.
 - Real Bash bootstrap execution with recorded GitHub transport fixtures, immutable commit selection, archive verification/safe extraction and all-language preview.
 - Reproducible single-language packages, committed-package freshness, menu language fetch/cache and unchanged active language on failed verification.
 - Actual ncurses sessions in PTYs: menu groups, unavailable-action explanations, fresh-machine diagnostics, arrow-driven bootstrap, hidden fields, animation, resize and terminal echo/canonical restoration after exit/Ctrl+C.
@@ -37,7 +37,7 @@ bash tests/run.sh
 bash tests/run.sh --live
 ```
 
-The online distribution test doubles only GitHub transport; it executes the actual Bash bootstrap, safe extraction and selected Python runtime. Missing packages, checksum mismatch, wrong-language archives, traversal, links/devices and duplicate paths are rejected before runtime execution. After publishing, run the online `--preview` path in all three languages as described in [UPLOAD.md](UPLOAD.md).
+The online distribution test doubles only GitHub transport; it executes the actual Bash bootstrap, safe extraction and selected Python runtime. Missing packages, checksum mismatch, wrong-language archives, traversal, links/devices and duplicate paths are rejected before runtime execution. After publishing, run the online `--preview` path in all three languages as described in [RELEASING.md](RELEASING.md).
 
 Optional checks are explicitly skipped if the corresponding client binary is absent. ShellCheck is used if installed; Bash syntax is always checked. The current verification also ran a separately downloaded official ShellCheck binary in a temporary directory, with the GitHub asset hash verified.
 

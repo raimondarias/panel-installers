@@ -441,7 +441,7 @@ class PseudoTerminalTests(BaseTest):
         self.receive(process, master, "Vista previa de la interfaz", timeout=15)
         os.write(master, b"q")
         self.assertEqual(process.wait(timeout=5), 0)
-        self.assertTrue(all("/languages/es/" in item["url"] for item in fixture.downloads()[1:]))
+        self.assertTrue(fixture.downloads()[-1]["url"].endswith("/installer-es.tar.gz"))
 
     def test_resize_and_sigint_restore_real_terminal(self):
         code = ("from ptero.ui import UI;ui=UI();\ntry:\n with ui.session():\n"
@@ -495,7 +495,7 @@ class PseudoTerminalTests(BaseTest):
         self.assertEqual(process.wait(timeout=5), 0)
         downloads = fixture.downloads()
         self.assertEqual(len(downloads), 3)
-        self.assertTrue(all("/languages/es/" in item["url"] for item in downloads[1:]))
+        self.assertTrue(downloads[-1]["url"].endswith("/installer-es.tar.gz"))
 
     def test_busy_animation_updates_real_terminal_and_restores_it(self):
         code = ("import os,time;os.environ.pop('NO_COLOR',None);from ptero.ui import UI;ui=UI();\n"

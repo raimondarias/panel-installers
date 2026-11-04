@@ -3,3 +3,5 @@ __pycache__/
 .venv/
 .coverage
 test-results/coverage/
+dist/
+languages/
