@@ -3,6 +3,7 @@ import argparse
 import fcntl
 import os
 import sys
+import time
 
 from . import __version__
 from .i18n import LANGUAGES
@@ -24,6 +25,7 @@ ENTRIES = [
     ("Install Wings", "install-wings"), ("Uninstall Panel and Wings", "uninstall-all"),
     ("Uninstall Panel", "uninstall-panel"), ("Uninstall Wings", "uninstall-wings"),
     ("Update Panel v2", "update-panel"), ("Update Wings", "update-wings"),
+    ("Roll back Panel update", "rollback-panel"),
     ("Configure / link Wings", "configure-wings"), ("Wings HTTPS certificate", "tls-wings"),
     ("Back up Panel", "backup-panel"), ("Back up Wings configuration", "backup-wings"),
     ("Restore Panel from backup", "restore-panel"), ("Status and diagnostics", "diagnose"),
@@ -39,9 +41,18 @@ ENTRIES = [
 ]
 
 
+def duration(seconds):
+    seconds = int(seconds)
+    if seconds < 60:
+        return f"{seconds}s"
+    minutes, seconds = divmod(seconds, 60)
+    return f"{minutes}m {seconds:02d}s" if minutes < 60 else f"{minutes // 60}h {minutes % 60:02d}m"
+
+
 def menu(installer):
     from .core import InstallerError, Cancelled
-    from .navigation import inventory, menu_items, prepare_action
+    from .navigation import attention, inventory, menu_items, prepare_action, status_label
+    from .ui import Literal
     ui = installer.ui
     while True:
         state = inventory(installer)
@@ -56,9 +67,15 @@ def menu(installer):
         else:
             print()
             ui.banner()
-            ui.card("Installation status", [ui.tr("Panel: {value}").format(value=ui.tr("Not installed" if state["panel"] == "absent" else state["panel"])),
-                    ui.tr("Wings: {value}").format(value=ui.tr("Not installed" if state["wings"] == "absent" else state["wings"])),
-                    "New machine? Start with Install Panel and Wings." if state["panel"] == "absent" else state.get("url", "")])
+            rows = []
+            for key, label in (("panel", "Panel"), ("wings", "Wings"), ("database", "Game SQL")):
+                value = ui.tr(status_label(key, state))
+                if state.get(key + "_version") and state[key] != "absent":
+                    value += " · " + state[key + "_version"]
+                rows.append(Literal(ui.tr(label) + ": " + value))
+            hint = attention(state)
+            rows.append(hint or ("New machine? Start with Install Panel and Wings." if state["panel"] == "absent" else Literal(state.get("url", ""))))
+            ui.card("Installation status", rows)
             last_group = None
             for item in items:
                 if item.group != last_group:
@@ -87,6 +104,7 @@ def menu(installer):
         if ui.screen:
             ui.screen.begin()
         outcome = "Operation complete"
+        started = time.monotonic()
         try:
             if prepare_action(ui, action, state, lambda setup: installer.actions()[setup](), lambda: inventory(installer)):
                 installer.actions()[action]()
@@ -99,6 +117,8 @@ def menu(installer):
             outcome = "Operation needs attention"
             ui.say(installer.run.redact(str(exc)), "error")
             ui.say("The operation did not complete. Review the private installer log.", "warn")
+        if outcome != "Before you continue":
+            ui.say(ui.tr("Duration: {value}").format(value=duration(time.monotonic() - started)), "muted")
         if ui.screen:
             ui.screen.result(outcome)
 

@@ -24,6 +24,7 @@ NOTES = {
     "database-credentials": "View the saved private connection details for the provisioning account.",
     "update-panel": "Back up the Panel before updating its code and database schema.",
     "update-wings": "Update Wings with recovery of its previous binary or image on failure.",
+    "rollback-panel": "Return to the Panel version before the last update, using its verified backup.",
     "restore-panel": "Restore a verified backup into an empty managed destination.",
     "uninstall-all": "Remove managed components. Game files and game SQL remain.",
     "uninstall-panel": "Back up first, then choose whether to retain Panel data.",
@@ -54,7 +55,8 @@ SHORTCUTS = dict(zip(("install-all", "install-panel", "install-wings", "uninstal
     "backup-panel", "backup-wings", "restore-panel", "diagnose", "restart", "logs", "smtp", "admin", "firewall",
     "configure-database", "database-credentials"), map(str, range(1, 22))))
 SHORTCUTS.update({"create-node": "24", "backup-schedule": "28", "backup-run": "29", "backup-download": "30",
-    "health": "31", "resume": "32", "remote-node": "33", "remote-database": "34"})
+    "health": "31", "resume": "32", "remote-node": "33", "remote-database": "34",
+    "rollback-panel": "35"})
 
 
 def inventory(installer):
@@ -88,7 +90,11 @@ def inventory(installer):
                     if not isinstance(status, str) or status not in ("ready", "pending", "installing", "failed", "updating", "restoring", "configured", "stopped"):
                         raise ValueError("Invalid component status")
                     result[key] = status
+                if key in ("panel", "wings") and isinstance(state.get("version"), str):
+                    result[key + "_version"] = state["version"]
                 if key == "panel":
+                    from .rollback import available
+                    result["rollback"] = status in ("ready", "updating") and available(state)
                     result["url"] = state.get("url", "")
                     result["method"] = state.get("method", "docker")
                     result["credentials"] = bool(state.get("game_database", {}).get("registered"))
@@ -125,6 +131,31 @@ def _state_problem(component, status):
     }.get(component, {}).get(status, "")
 
 
+STATUS_LABELS = {"absent": "Not installed", "ready": "Configured", "stopped": "Stopped", "pending": "Not linked",
+                 "configured": "Linked, not started", "installing": "Installation incomplete",
+                 "updating": "Update incomplete", "restoring": "Restore incomplete", "failed": "Needs attention",
+                 "invalid": "Needs review", "foreign": "Needs review", "unmanaged": "Needs review"}
+
+
+def status_label(key, state):
+    """Friendly dashboard wording for a component status from inventory()."""
+    status = state.get(key, "absent")
+    if key == "database" and status == "absent":
+        return "Not configured"
+    return STATUS_LABELS.get(status, "Needs attention")
+
+
+def attention(state):
+    """One actionable dashboard hint, or an empty string when nothing is pending."""
+    if state.get("panel") == "updating":
+        return "Panel update incomplete. Choose Resume installation (32) to continue or roll back."
+    if state.get("interrupted"):
+        return "An operation was interrupted. Choose Resume installation (32) to continue."
+    if any(state.get(key) in ("invalid", "foreign", "unmanaged") for key in ("panel", "wings")):
+        return "A component needs manual review. Choose Status and diagnostics (14)."
+    return ""
+
+
 def prerequisite(action, state):
     panel, wings = state["panel"], state["wings"]
     if action == "uninstall-panel" and panel == "absent":
@@ -158,6 +189,16 @@ def prerequisite(action, state):
         return "Finish or resume the Panel installation before using this option."
     if action in ("backup-schedule", "backup-run") and panel not in ("absent", "ready"):
         return "Finish or resume the Panel installation before using this option."
+    if action == "rollback-panel":
+        problem = _state_problem("Panel", panel)
+        if problem:
+            return problem
+        if panel == "absent":
+            return "No managed Panel is installed, so there is no update to roll back."
+        if panel not in ("ready", "updating"):
+            return "Finish or resume the Panel installation before using this option."
+        if not state.get("rollback"):
+            return "No Panel update can be rolled back. A recovery point is saved automatically each time you update the Panel."
     if action == "database-credentials" and not state["credentials"]:
         return "Configure a game database host first to save its connection details."
     if action in ("backup-run", "backup-download"):

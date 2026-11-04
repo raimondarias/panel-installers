@@ -480,6 +480,7 @@ class MaintenanceTests(BaseTest):
     def test_update_failure_stays_stopped_with_recovery_backup(self):
         self.panel()
         self.runner.failure = lambda args: "migrate" in args
+        self.ui.choices = [False]  # Decline the offered rollback.
         with patch.object(self.installer, "choose_release", return_value={"tag_name": "v2.0.0-beta.3"}):
             with self.assertRaises(app.InstallerError):
                 self.installer.update_panel()

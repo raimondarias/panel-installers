@@ -492,7 +492,8 @@ class NativeBackend:
     def update(self, release):
         backup = self.backup()
         self.pause()
-        self.s.update(status="updating", version=release["tag_name"], recovery_backup=str(backup))
+        self.s.update(status="updating", version=release["tag_name"], recovery_backup=str(backup),
+                      previous_version=self.s["version"])
         self.save()
         try:
             self.source(release)
@@ -501,6 +502,45 @@ class NativeBackend:
             self.pause()
             self.ui.say("Update incomplete. Panel remains in maintenance. Recovery backup: {path}".format(path=backup), "error")
             raise
+
+    def rollback(self, work, saved):
+        """Reinstate the pre-update application and SQL from an extracted recovery backup."""
+        from .rollback import application_keys
+        if not (work / "app/artisan").is_file() or not (work / "app/.env").is_file():
+            raise InstallerError("Backup is missing the original .env or SQL dump.")
+        if self.app.exists() and application_keys(work / "app/.env") != application_keys(self.app / ".env"):
+            raise InstallerError("The recovery backup has different application keys; use Restore Panel from backup instead.")
+        self.pause()
+        stamp = self.i.stamp()
+        staged = self.app.with_name(".ptero-rollback-" + stamp)
+        shutil.copytree(work / "app", staged, symlinks=True)
+        if (self.app / "storage/logs").is_dir():
+            # Keep logs written since the backup; everything else matches the old release.
+            shutil.copytree(self.app / "storage/logs", staged / "storage/logs", symlinks=True, dirs_exist_ok=True)
+        old = self.app.with_name(".ptero-previous-" + stamp)
+        if self.app.exists():
+            os.replace(self.app, old)
+        try:
+            os.replace(staged, self.app)
+        except BaseException:
+            if old.exists():
+                os.replace(old, self.app)
+            raise
+        # Tables added by newer migrations must not survive: recreate the database.
+        self.sql("DROP DATABASE IF EXISTS ptero_panel;\n")
+        self.provision_database()
+        with self.client_config() as config, (work / "database.sql").open("rb") as stream:
+            self.run.run([self.db_client, "--defaults-extra-file=" + str(config), "ptero_panel"], input_file=stream,
+                         label="Restoring the pre-update database")
+        self.s.update(version=saved["version"], source_installed=saved["version"])
+        self.save()
+        self.run.run(["chown", "-R", "www-data:www-data", self.app])
+        self.application_environment()
+        self.artisan("config:clear")
+        self.artisan("view:clear")
+        self.publish_site()
+        self.start()
+        shutil.rmtree(old, ignore_errors=True)
 
     def uninstall(self, confirmed=False):
         if not confirmed:

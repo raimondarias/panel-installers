@@ -20,6 +20,18 @@ Use **Back up Panel** for the Panel application, its SQL database, original encr
 
 These tools do not read hosted game volumes, copy game SQL data, or pause game containers. Protect hosted servers through Pterodactyl's backup features or a separate backup system.
 
+## Guided Panel update rollback
+
+Every **Update Panel v2** records the verified backup taken before its code or schema changed, together with the previous version. **Roll back Panel update** (shortcut 35, direct action `rollback-panel`) returns to that version:
+
+1. The archive checksum, its Panel-only contents and its saved state are verified. The backup must be older than the installed Panel and use the same deployment method, database engine and Panel database.
+2. A plan shows the installed and target versions. A manual rollback requires the written confirmation and first creates a safety copy of the current Panel; Panel changes made after the backup are lost.
+3. The Panel stops, its database is recreated so tables from newer migrations cannot remain, and the pre-update SQL is imported.
+4. Docker restores the previous pinned image digest and the extension directories. Standalone reinstates the previous application (including PHP dependencies), keeps logs written since then and rebuilds `.env` from the current settings.
+5. The Panel starts and passes its health checks. The rollback point is then consumed and `rolled_back_from` records the version that was replaced.
+
+Application keys, credentials, certificates, Redis data and current settings such as SMTP are retained; the rollback refuses a backup whose application keys differ. When an update fails, the Panel stayed stopped after its backup, so the offered rollback skips the safety copy without losing data. If you decline, **Resume installation** later offers to continue the update or roll back. Wings updates already revert their binary or image automatically when the new version does not start.
+
 ## Encrypted scheduled backups
 
 Use **Schedule encrypted backups**. Choose a local Restic repository, `sftp:user@host:path` or `s3:https://endpoint/bucket`, supply the encryption password, select daily/weekly/hourly. The schedule includes the installed Panel and/or Wings configuration. A Wings-only machine can schedule configuration backups without a local Panel. S3 credentials and the encryption password are stored in private root-only files. SFTP requires preconfigured SSH keys and a verified host key.

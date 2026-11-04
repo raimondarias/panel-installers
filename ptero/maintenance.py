@@ -49,6 +49,17 @@ class MaintenanceMixin:
 
     def resume(self):
         if self.p.state.exists() and self.panel_state()["status"] != "ready":
+            state = self.panel_state()
+            from .rollback import available
+            if state["status"] == "updating" and available(state):
+                previous = state.get("previous_version") or self.ui.tr("the previous version")
+                choice = self.ui.choice("The last Panel update did not finish", [
+                    ("retry", self.ui.tr("Continue the update to {version}").format(version=state["version"]),
+                     "Run the remaining update phases again"),
+                    ("rollback", self.ui.tr("Roll back to {version}").format(version=previous),
+                     "Restore the verified pre-update backup and previous release")])
+                if choice == "rollback":
+                    return self.rollback_panel(after_failure=True)
             return self.install_panel()
         from .game_database import GameDatabase
         database = GameDatabase(self)
@@ -185,6 +196,7 @@ class MaintenanceMixin:
                 "install-wings": self.install_wings, "uninstall-all": self.uninstall_both,
                 "uninstall-panel": self.uninstall_panel, "uninstall-wings": self.uninstall_wings,
                 "update-panel": self.update_panel, "update-wings": self.update_wings,
+                "rollback-panel": self.rollback_panel,
                 "configure-wings": self.configure_wings, "tls-wings": self.wings_tls,
                 "backup-panel": self.backup_panel, "backup-wings": self.backup_wings,
                 "restore-panel": self.restore_panel, "diagnose": self.diagnostics,

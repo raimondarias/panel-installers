@@ -61,7 +61,10 @@ class Simulation:
                 "credentials": bool(self.panel and self.panel.get("game_database", {}).get("registered")),
                 "backup_profile": "ready" if self.backup_profile else "absent",
                 "interrupted": bool(self.wings and self.wings.get("status") != "ready"),
-                "url": self.panel["url"] if self.panel else ""}
+                "url": self.panel["url"] if self.panel else "",
+                "rollback": bool(self.panel and self.panel.get("previous_version")),
+                **({"panel_version": self.panel["version"]} if self.panel else {}),
+                **({"wings_version": self.wings["version"]} if self.wings and self.wings.get("version") else {})}
 
     def install_panel(self):
         if self.panel:
@@ -226,9 +229,26 @@ class Simulation:
             component = action.removeprefix("update-")
             state = self.panel if component == "panel" else self.wings
             release = self.choose_release(component, state["version"])
+            if component == "panel":
+                self.ui.card("Panel update plan", [
+                    self.ui.tr("Update: {current} → {target}").format(current=state["version"], target=release["tag_name"]),
+                    "A verified backup is created before any code or database change.",
+                    self.ui.tr("If anything fails, you can roll back to {version}.").format(version=state["version"])])
             self.ui.confirm("UPDATE PREVIEW")
             self.stages("Creating a simulated backup", "Deploying the simulated update", "Checking simulated services")
+            if component == "panel":
+                state["previous_version"] = state["version"]
             state["version"] = release["tag_name"]
+        elif action == "rollback-panel":
+            previous = self.panel.pop("previous_version")
+            self.ui.card("Panel rollback plan", [
+                self.ui.tr("Installed: {value}").format(value=self.panel["version"]),
+                self.ui.tr("Roll back to: {value}").format(value=previous),
+                "Panel changes made after this backup will be lost.",
+                "A safety copy of the current Panel is created first."])
+            self.ui.confirm("ROLL BACK PANEL")
+            self.stages("Creating a simulated backup", "Restoring the pre-update database", "Starting the previous Panel version")
+            self.panel["version"] = previous
         elif action == "restart":
             self.ui.confirm("RESTART PREVIEW")
             self.stages("Restarting simulated services", "Checking simulated services")

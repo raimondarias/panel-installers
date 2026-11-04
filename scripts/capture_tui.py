@@ -52,7 +52,7 @@ def capture(screen, target):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--language", choices=("en", "es", "pt-BR"), default="es")
-    parser.add_argument("--scene", choices=("overview", "database", "maintenance", "backups", "nodes", "remove", "password", "preview", "review"), default="overview")
+    parser.add_argument("--scene", choices=("overview", "database", "maintenance", "backups", "nodes", "remove", "password", "preview", "review", "update-incomplete"), default="overview")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     ui = UI(False, args.language)
@@ -67,7 +67,11 @@ def main():
             capture(screen, args.output)
             curses.unget_wch("\x1b")
         screen.refresh = snapshot
-        groups = {"database": "Game databases", "maintenance": "Maintenance", "backups": "Backups", "nodes": "Nodes", "remove": "Remove"}
+        if args.scene == "update-incomplete":
+            screen.dashboard = {"panel": "updating", "wings": "ready", "database": "ready", "credentials": True,
+                                "interrupted": True, "rollback": True, "panel_version": "v2.0.0-beta.3",
+                                "wings_version": "v1.13.4", "url": "https://panel.example.com"}
+        groups = {"update-incomplete": "Maintenance", "database": "Game databases", "maintenance": "Maintenance", "backups": "Backups", "nodes": "Nodes", "remove": "Remove"}
         if args.scene in groups:
             screen.navigation = (groups[args.scene], 0)
         try:

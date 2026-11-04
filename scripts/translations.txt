@@ -599,3 +599,60 @@ The snapshot contains no supported Panel or Wings configuration files.|||La copi
 Needs attention: {component} — {detail}|||Requiere atención: {component} — {detail}|||Precisa de atenção: {component} — {detail}
 No managed Panel installation is available to remove.|||No hay una instalación gestionada del Panel que desinstalar.|||Não há uma instalação gerenciada do Painel para desinstalar.
 No managed Wings installation is available to remove.|||No hay una instalación gestionada de Wings que desinstalar.|||Não há uma instalação gerenciada do Wings para desinstalar.
+# 1.3.0: guided Panel update rollback and dashboard status
+No Panel update can be rolled back. A recovery point is saved automatically each time you update the Panel.|||No hay ninguna actualización del Panel que revertir. Cada vez que actualizas el Panel se guarda automáticamente un punto de recuperación.|||Não há atualização do Painel para reverter. Um ponto de recuperação é salvo automaticamente sempre que você atualiza o Painel.
+The recovery backup is no longer available: {path}|||La copia de recuperación ya no está disponible: {path}|||O backup de recuperação não está mais disponível: {path}
+The recovery backup does not contain a readable Panel state.|||La copia de recuperación no contiene un estado del Panel legible.|||O backup de recuperação não contém um estado do Painel legível.
+The recovery backup does not record a valid Panel version.|||La copia de recuperación no registra una versión válida del Panel.|||O backup de recuperação não registra uma versão válida do Painel.
+The recovery backup is not older than the installed Panel; there is nothing to roll back.|||La copia de recuperación no es anterior al Panel instalado; no hay nada que revertir.|||O backup de recuperação não é anterior ao Painel instalado; não há nada para reverter.
+The recovery backup was made for a different deployment method or database engine.|||La copia de recuperación se creó con otro método de instalación u otro motor de base de datos.|||O backup de recuperação foi criado com outro método de instalação ou outro mecanismo de banco de dados.
+The recovery backup belongs to a different Panel database.|||La copia de recuperación pertenece a otra base de datos del Panel.|||O backup de recuperação pertence a outro banco de dados do Painel.
+Installed: {value}|||Instalada: {value}|||Instalada: {value}
+Roll back to: {value}|||Revertir a: {value}|||Reverter para: {value}
+Recovery backup: {value}|||Copia de recuperación: {value}|||Backup de recuperação: {value}
+The Panel stayed stopped after the backup, so no Panel data is lost.|||El Panel permaneció detenido tras la copia, así que no se pierde ningún dato del Panel.|||O Painel permaneceu parado após o backup, então nenhum dado do Painel é perdido.
+Panel changes made after this backup will be lost.|||Se perderán los cambios hechos en el Panel después de esta copia.|||As alterações feitas no Painel após este backup serão perdidas.
+A safety copy of the current Panel is created first.|||Primero se crea una copia de seguridad del Panel actual.|||Primeiro é criado um backup de segurança do Painel atual.
+Application keys, credentials, certificates and current settings are kept.|||Se conservan las claves de la aplicación, las credenciales, los certificados y los ajustes actuales.|||As chaves da aplicação, as credenciais, os certificados e as configurações atuais são mantidos.
+Panel rollback plan|||Plan para revertir el Panel|||Plano de reversão do Painel
+ROLL BACK PANEL|||REVERTIR PANEL|||REVERTER PAINEL
+The safety copy failed. Continue the rollback without it?|||La copia de seguridad falló. ¿Continuar la reversión sin ella?|||O backup de segurança falhou. Continuar a reversão sem ele?
+Panel rolled back|||Panel revertido|||Painel revertido
+Running version: {value}|||Versión en ejecución: {value}|||Versão em execução: {value}
+Safety copy of {version}: {path}|||Copia de seguridad de {version}: {path}|||Backup de segurança da {version}: {path}
+Update again when a fixed release is available.|||Vuelve a actualizar cuando haya una versión corregida.|||Atualize novamente quando houver uma versão corrigida.
+Panel rollback complete.|||Reversión del Panel completada.|||Reversão do Painel concluída.
+The recovery backup does not contain the Panel database.|||La copia de recuperación no contiene la base de datos del Panel.|||O backup de recuperação não contém o banco de dados do Painel.
+The recovery backup has different application keys; use Restore Panel from backup instead.|||La copia de recuperación tiene otras claves de aplicación; usa «Restaurar Panel desde una copia».|||O backup de recuperação tem outras chaves da aplicação; use «Restaurar o Painel de um backup».
+Stopping the Panel for the rollback|||Deteniendo el Panel para revertirlo|||Parando o Painel para a reversão
+Clearing the updated database schema|||Eliminando el esquema actualizado de la base de datos|||Removendo o esquema atualizado do banco de dados
+Restoring the pre-update database|||Restaurando la base de datos anterior a la actualización|||Restaurando o banco de dados anterior à atualização
+Downloading the previous Panel image|||Descargando la imagen anterior del Panel|||Baixando a imagem anterior do Painel
+Starting the previous Panel version|||Iniciando la versión anterior del Panel|||Iniciando a versão anterior do Painel
+Panel update plan|||Plan de actualización del Panel|||Plano de atualização do Painel
+Update: {current} → {target}|||Actualización: {current} → {target}|||Atualização: {current} → {target}
+A verified backup is created before any code or database change.|||Se crea una copia verificada antes de cambiar el código o la base de datos.|||Um backup verificado é criado antes de qualquer alteração no código ou no banco de dados.
+The Panel is unavailable while the new migrations run.|||El Panel no estará disponible mientras se aplican las nuevas migraciones.|||O Painel fica indisponível enquanto as novas migrações são executadas.
+If anything fails, you can roll back to {version}.|||Si algo falla, podrás volver a {version}.|||Se algo falhar, você poderá voltar para a {version}.
+If something looks wrong, choose Roll back Panel update to return to {version}.|||Si algo no funciona bien, elige «Revertir actualización del Panel» para volver a {version}.|||Se algo não estiver certo, escolha «Reverter atualização do Painel» para voltar para a {version}.
+Roll back to {version} now?|||¿Revertir ahora a {version}?|||Reverter agora para a {version}?
+The Panel stays stopped. Choose Resume installation to retry, or Roll back Panel update.|||El Panel sigue detenido. Elige «Reanudar instalación» para reintentar o «Revertir actualización del Panel».|||O Painel continua parado. Escolha «Retomar instalação» para tentar novamente ou «Reverter atualização do Painel».
+The update failed and the Panel was rolled back to {version}.|||La actualización falló y el Panel se revirtió a {version}.|||A atualização falhou e o Painel foi revertido para a {version}.
+the previous version|||la versión anterior|||a versão anterior
+The last Panel update did not finish|||La última actualización del Panel no terminó|||A última atualização do Painel não foi concluída
+Continue the update to {version}|||Continuar la actualización a {version}|||Continuar a atualização para a {version}
+Run the remaining update phases again|||Volver a ejecutar las fases pendientes de la actualización|||Executar novamente as fases pendentes da atualização
+Roll back to {version}|||Revertir a {version}|||Reverter para a {version}
+Restore the verified pre-update backup and previous release|||Restaurar la copia verificada previa y la versión anterior|||Restaurar o backup verificado anterior e a versão anterior
+Roll back Panel update|||Revertir actualización del Panel|||Reverter atualização do Painel
+Return to the Panel version before the last update, using its verified backup.|||Vuelve a la versión del Panel anterior a la última actualización usando su copia verificada.|||Volte à versão do Painel anterior à última atualização usando o backup verificado.
+No managed Panel is installed, so there is no update to roll back.|||No hay un Panel gestionado instalado, así que no hay ninguna actualización que revertir.|||Não há um Painel gerenciado instalado, então não há atualização para reverter.
+Linked, not started|||Vinculado, sin iniciar|||Vinculado, não iniciado
+Installation incomplete|||Instalación incompleta|||Instalação incompleta
+Update incomplete|||Actualización incompleta|||Atualização incompleta
+Restore incomplete|||Restauración incompleta|||Restauração incompleta
+Needs review|||Requiere revisión|||Precisa de revisão
+Panel update incomplete. Choose Resume installation (32) to continue or roll back.|||Actualización del Panel incompleta. Elige Reanudar instalación (32) para continuar o revertir.|||Atualização do Painel incompleta. Escolha Retomar instalação (32) para continuar ou reverter.
+An operation was interrupted. Choose Resume installation (32) to continue.|||Una operación se interrumpió. Elige Reanudar instalación (32) para continuar.|||Uma operação foi interrompida. Escolha Retomar instalação (32) para continuar.
+A component needs manual review. Choose Status and diagnostics (14).|||Un componente requiere revisión manual. Elige Estado y diagnóstico (14).|||Um componente precisa de revisão manual. Escolha Status e diagnóstico (14).
+Duration: {value}|||Duración: {value}|||Duração: {value}

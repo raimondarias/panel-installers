@@ -1,6 +1,6 @@
 # Implementation status and next validation
 
-Implemented areas include disposable integration tooling, automatic first-node creation, encrypted scheduled Panel/Wings-configuration backups, guided Panel restore, persisted resume phases, expanded health checks, isolated native game SQL and verified SSH provisioning of remote nodes/SQL. Hosted game file/database backups and restores are outside this installer’s scope. See [advanced operations](ADVANCED.md) for their contracts and limits.
+Implemented areas include guided Panel update rollback, disposable integration tooling, automatic first-node creation, encrypted scheduled Panel/Wings-configuration backups, guided Panel restore, persisted resume phases, expanded health checks, isolated native game SQL and verified SSH provisioning of remote nodes/SQL. Hosted game file/database backups and restores are outside this installer’s scope. See [advanced operations](ADVANCED.md) for their contracts and limits.
 
 Remaining validation and expansion:
 
@@ -8,6 +8,6 @@ Remaining validation and expansion:
 2. Test S3 and SFTP against independent off-server infrastructure; current encrypted repository roundtrips use isolated local storage.
 3. Test remote routing and firewall behavior between independent VPSes. Local SSH/VM tests do not prove provider networking.
 4. Add configured notification destinations for failed backups and health checks.
-5. Expand recovery from saved installation phases into explicit guided update rollback, with schema-compatible backup restoration.
+5. Validate guided Panel update rollback on fresh Docker and standalone systems across a real release pair.
 
 [Verification report](../test-results/REPORT.md) · [Testing procedure](TESTING.md).

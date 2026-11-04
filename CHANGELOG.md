@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add **Roll back Panel update** (shortcut 35, `rollback-panel`) for Docker and standalone Panels. Each update records its verified pre-update backup and previous version; a rollback recreates the database from that backup, reinstates the previous image or application and keeps keys, credentials, certificates and current settings.
+- Offer an immediate rollback when a Panel update fails, and let **Resume installation** choose between continuing an incomplete update and rolling it back.
+- Show a Panel update plan (current → target version and rollback availability) before confirmation.
+- Show friendly component statuses, installed versions and an actionable hint for interrupted operations in the TUI dashboard and the numbered menu. Report each operation's duration.
+- Split the installer core into focused host, Panel, Wings and maintenance modules; `ptero.core` keeps its public API.
+
 ## 1.2.1 — 2026-10-24
 
 - Use the full **Pterodactyl Installer** name in the bootstrap, terminal interface and documentation in all three languages.

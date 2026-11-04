@@ -97,7 +97,7 @@ class SimulationTests(unittest.TestCase):
             for action in ("install-panel", "install-wings", "install-all", "configure-database",
                            "create-node", "remote-node", "remote-database", "health", "backup-schedule", "backup-run", "backup-download",
                            "database-credentials", "backup-panel", "backup-wings",
-                           "configure-wings", "tls-wings", "update-panel", "update-wings", "smtp", "admin",
+                           "configure-wings", "tls-wings", "update-panel", "rollback-panel", "update-wings", "smtp", "admin",
                            "diagnose", "restart", "logs", "firewall", "uninstall-all", "restore-panel",
                            "uninstall-panel", "install-wings", "uninstall-wings"):
                 simulation.dispatch(action)

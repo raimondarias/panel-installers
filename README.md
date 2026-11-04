@@ -21,6 +21,7 @@ The first question is **“Which language would you like to use?”**. The boots
 - Automatic node creation, verified SSH provisioning and resumable installation phases.
 - Native or Docker game SQL host provisioning and automatic Panel registration.
 - Panel and Wings-configuration backups, encrypted schedules and guided Panel recovery.
+- Guided Panel update rollback to the previous version and its compatible database.
 - Install, update, diagnose and remove managed components.
 
 Maintenance, backup, removal and node operations are implemented. A fresh machine shows the installation prerequisites for each action; install the required component before using its maintenance tools.

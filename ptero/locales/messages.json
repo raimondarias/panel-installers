@@ -3883,5 +3883,285 @@
     "en": "No managed Wings installation is available to remove.",
     "es": "No hay una instalación gestionada de Wings que desinstalar.",
     "pt-BR": "Não há uma instalação gerenciada do Wings para desinstalar."
+  },
+  "No Panel update can be rolled back. A recovery point is saved automatically each time you update the Panel.": {
+    "en": "No Panel update can be rolled back. A recovery point is saved automatically each time you update the Panel.",
+    "es": "No hay ninguna actualización del Panel que revertir. Cada vez que actualizas el Panel se guarda automáticamente un punto de recuperación.",
+    "pt-BR": "Não há atualização do Painel para reverter. Um ponto de recuperação é salvo automaticamente sempre que você atualiza o Painel."
+  },
+  "The recovery backup is no longer available: {path}": {
+    "en": "The recovery backup is no longer available: {path}",
+    "es": "La copia de recuperación ya no está disponible: {path}",
+    "pt-BR": "O backup de recuperação não está mais disponível: {path}"
+  },
+  "The recovery backup does not contain a readable Panel state.": {
+    "en": "The recovery backup does not contain a readable Panel state.",
+    "es": "La copia de recuperación no contiene un estado del Panel legible.",
+    "pt-BR": "O backup de recuperação não contém um estado do Painel legível."
+  },
+  "The recovery backup does not record a valid Panel version.": {
+    "en": "The recovery backup does not record a valid Panel version.",
+    "es": "La copia de recuperación no registra una versión válida del Panel.",
+    "pt-BR": "O backup de recuperação não registra uma versão válida do Painel."
+  },
+  "The recovery backup is not older than the installed Panel; there is nothing to roll back.": {
+    "en": "The recovery backup is not older than the installed Panel; there is nothing to roll back.",
+    "es": "La copia de recuperación no es anterior al Panel instalado; no hay nada que revertir.",
+    "pt-BR": "O backup de recuperação não é anterior ao Painel instalado; não há nada para reverter."
+  },
+  "The recovery backup was made for a different deployment method or database engine.": {
+    "en": "The recovery backup was made for a different deployment method or database engine.",
+    "es": "La copia de recuperación se creó con otro método de instalación u otro motor de base de datos.",
+    "pt-BR": "O backup de recuperação foi criado com outro método de instalação ou outro mecanismo de banco de dados."
+  },
+  "The recovery backup belongs to a different Panel database.": {
+    "en": "The recovery backup belongs to a different Panel database.",
+    "es": "La copia de recuperación pertenece a otra base de datos del Panel.",
+    "pt-BR": "O backup de recuperação pertence a outro banco de dados do Painel."
+  },
+  "Installed: {value}": {
+    "en": "Installed: {value}",
+    "es": "Instalada: {value}",
+    "pt-BR": "Instalada: {value}"
+  },
+  "Roll back to: {value}": {
+    "en": "Roll back to: {value}",
+    "es": "Revertir a: {value}",
+    "pt-BR": "Reverter para: {value}"
+  },
+  "Recovery backup: {value}": {
+    "en": "Recovery backup: {value}",
+    "es": "Copia de recuperación: {value}",
+    "pt-BR": "Backup de recuperação: {value}"
+  },
+  "The Panel stayed stopped after the backup, so no Panel data is lost.": {
+    "en": "The Panel stayed stopped after the backup, so no Panel data is lost.",
+    "es": "El Panel permaneció detenido tras la copia, así que no se pierde ningún dato del Panel.",
+    "pt-BR": "O Painel permaneceu parado após o backup, então nenhum dado do Painel é perdido."
+  },
+  "Panel changes made after this backup will be lost.": {
+    "en": "Panel changes made after this backup will be lost.",
+    "es": "Se perderán los cambios hechos en el Panel después de esta copia.",
+    "pt-BR": "As alterações feitas no Painel após este backup serão perdidas."
+  },
+  "A safety copy of the current Panel is created first.": {
+    "en": "A safety copy of the current Panel is created first.",
+    "es": "Primero se crea una copia de seguridad del Panel actual.",
+    "pt-BR": "Primeiro é criado um backup de segurança do Painel atual."
+  },
+  "Application keys, credentials, certificates and current settings are kept.": {
+    "en": "Application keys, credentials, certificates and current settings are kept.",
+    "es": "Se conservan las claves de la aplicación, las credenciales, los certificados y los ajustes actuales.",
+    "pt-BR": "As chaves da aplicação, as credenciais, os certificados e as configurações atuais são mantidos."
+  },
+  "Panel rollback plan": {
+    "en": "Panel rollback plan",
+    "es": "Plan para revertir el Panel",
+    "pt-BR": "Plano de reversão do Painel"
+  },
+  "ROLL BACK PANEL": {
+    "en": "ROLL BACK PANEL",
+    "es": "REVERTIR PANEL",
+    "pt-BR": "REVERTER PAINEL"
+  },
+  "The safety copy failed. Continue the rollback without it?": {
+    "en": "The safety copy failed. Continue the rollback without it?",
+    "es": "La copia de seguridad falló. ¿Continuar la reversión sin ella?",
+    "pt-BR": "O backup de segurança falhou. Continuar a reversão sem ele?"
+  },
+  "Panel rolled back": {
+    "en": "Panel rolled back",
+    "es": "Panel revertido",
+    "pt-BR": "Painel revertido"
+  },
+  "Running version: {value}": {
+    "en": "Running version: {value}",
+    "es": "Versión en ejecución: {value}",
+    "pt-BR": "Versão em execução: {value}"
+  },
+  "Safety copy of {version}: {path}": {
+    "en": "Safety copy of {version}: {path}",
+    "es": "Copia de seguridad de {version}: {path}",
+    "pt-BR": "Backup de segurança da {version}: {path}"
+  },
+  "Update again when a fixed release is available.": {
+    "en": "Update again when a fixed release is available.",
+    "es": "Vuelve a actualizar cuando haya una versión corregida.",
+    "pt-BR": "Atualize novamente quando houver uma versão corrigida."
+  },
+  "Panel rollback complete.": {
+    "en": "Panel rollback complete.",
+    "es": "Reversión del Panel completada.",
+    "pt-BR": "Reversão do Painel concluída."
+  },
+  "The recovery backup does not contain the Panel database.": {
+    "en": "The recovery backup does not contain the Panel database.",
+    "es": "La copia de recuperación no contiene la base de datos del Panel.",
+    "pt-BR": "O backup de recuperação não contém o banco de dados do Painel."
+  },
+  "The recovery backup has different application keys; use Restore Panel from backup instead.": {
+    "en": "The recovery backup has different application keys; use Restore Panel from backup instead.",
+    "es": "La copia de recuperación tiene otras claves de aplicación; usa «Restaurar Panel desde una copia».",
+    "pt-BR": "O backup de recuperação tem outras chaves da aplicação; use «Restaurar o Painel de um backup»."
+  },
+  "Stopping the Panel for the rollback": {
+    "en": "Stopping the Panel for the rollback",
+    "es": "Deteniendo el Panel para revertirlo",
+    "pt-BR": "Parando o Painel para a reversão"
+  },
+  "Clearing the updated database schema": {
+    "en": "Clearing the updated database schema",
+    "es": "Eliminando el esquema actualizado de la base de datos",
+    "pt-BR": "Removendo o esquema atualizado do banco de dados"
+  },
+  "Restoring the pre-update database": {
+    "en": "Restoring the pre-update database",
+    "es": "Restaurando la base de datos anterior a la actualización",
+    "pt-BR": "Restaurando o banco de dados anterior à atualização"
+  },
+  "Downloading the previous Panel image": {
+    "en": "Downloading the previous Panel image",
+    "es": "Descargando la imagen anterior del Panel",
+    "pt-BR": "Baixando a imagem anterior do Painel"
+  },
+  "Starting the previous Panel version": {
+    "en": "Starting the previous Panel version",
+    "es": "Iniciando la versión anterior del Panel",
+    "pt-BR": "Iniciando a versão anterior do Painel"
+  },
+  "Panel update plan": {
+    "en": "Panel update plan",
+    "es": "Plan de actualización del Panel",
+    "pt-BR": "Plano de atualização do Painel"
+  },
+  "Update: {current} → {target}": {
+    "en": "Update: {current} → {target}",
+    "es": "Actualización: {current} → {target}",
+    "pt-BR": "Atualização: {current} → {target}"
+  },
+  "A verified backup is created before any code or database change.": {
+    "en": "A verified backup is created before any code or database change.",
+    "es": "Se crea una copia verificada antes de cambiar el código o la base de datos.",
+    "pt-BR": "Um backup verificado é criado antes de qualquer alteração no código ou no banco de dados."
+  },
+  "The Panel is unavailable while the new migrations run.": {
+    "en": "The Panel is unavailable while the new migrations run.",
+    "es": "El Panel no estará disponible mientras se aplican las nuevas migraciones.",
+    "pt-BR": "O Painel fica indisponível enquanto as novas migrações são executadas."
+  },
+  "If anything fails, you can roll back to {version}.": {
+    "en": "If anything fails, you can roll back to {version}.",
+    "es": "Si algo falla, podrás volver a {version}.",
+    "pt-BR": "Se algo falhar, você poderá voltar para a {version}."
+  },
+  "If something looks wrong, choose Roll back Panel update to return to {version}.": {
+    "en": "If something looks wrong, choose Roll back Panel update to return to {version}.",
+    "es": "Si algo no funciona bien, elige «Revertir actualización del Panel» para volver a {version}.",
+    "pt-BR": "Se algo não estiver certo, escolha «Reverter atualização do Painel» para voltar para a {version}."
+  },
+  "Roll back to {version} now?": {
+    "en": "Roll back to {version} now?",
+    "es": "¿Revertir ahora a {version}?",
+    "pt-BR": "Reverter agora para a {version}?"
+  },
+  "The Panel stays stopped. Choose Resume installation to retry, or Roll back Panel update.": {
+    "en": "The Panel stays stopped. Choose Resume installation to retry, or Roll back Panel update.",
+    "es": "El Panel sigue detenido. Elige «Reanudar instalación» para reintentar o «Revertir actualización del Panel».",
+    "pt-BR": "O Painel continua parado. Escolha «Retomar instalação» para tentar novamente ou «Reverter atualização do Painel»."
+  },
+  "The update failed and the Panel was rolled back to {version}.": {
+    "en": "The update failed and the Panel was rolled back to {version}.",
+    "es": "La actualización falló y el Panel se revirtió a {version}.",
+    "pt-BR": "A atualização falhou e o Painel foi revertido para a {version}."
+  },
+  "the previous version": {
+    "en": "the previous version",
+    "es": "la versión anterior",
+    "pt-BR": "a versão anterior"
+  },
+  "The last Panel update did not finish": {
+    "en": "The last Panel update did not finish",
+    "es": "La última actualización del Panel no terminó",
+    "pt-BR": "A última atualização do Painel não foi concluída"
+  },
+  "Continue the update to {version}": {
+    "en": "Continue the update to {version}",
+    "es": "Continuar la actualización a {version}",
+    "pt-BR": "Continuar a atualização para a {version}"
+  },
+  "Run the remaining update phases again": {
+    "en": "Run the remaining update phases again",
+    "es": "Volver a ejecutar las fases pendientes de la actualización",
+    "pt-BR": "Executar novamente as fases pendentes da atualização"
+  },
+  "Roll back to {version}": {
+    "en": "Roll back to {version}",
+    "es": "Revertir a {version}",
+    "pt-BR": "Reverter para a {version}"
+  },
+  "Restore the verified pre-update backup and previous release": {
+    "en": "Restore the verified pre-update backup and previous release",
+    "es": "Restaurar la copia verificada previa y la versión anterior",
+    "pt-BR": "Restaurar o backup verificado anterior e a versão anterior"
+  },
+  "Roll back Panel update": {
+    "en": "Roll back Panel update",
+    "es": "Revertir actualización del Panel",
+    "pt-BR": "Reverter atualização do Painel"
+  },
+  "Return to the Panel version before the last update, using its verified backup.": {
+    "en": "Return to the Panel version before the last update, using its verified backup.",
+    "es": "Vuelve a la versión del Panel anterior a la última actualización usando su copia verificada.",
+    "pt-BR": "Volte à versão do Painel anterior à última atualização usando o backup verificado."
+  },
+  "No managed Panel is installed, so there is no update to roll back.": {
+    "en": "No managed Panel is installed, so there is no update to roll back.",
+    "es": "No hay un Panel gestionado instalado, así que no hay ninguna actualización que revertir.",
+    "pt-BR": "Não há um Painel gerenciado instalado, então não há atualização para reverter."
+  },
+  "Linked, not started": {
+    "en": "Linked, not started",
+    "es": "Vinculado, sin iniciar",
+    "pt-BR": "Vinculado, não iniciado"
+  },
+  "Installation incomplete": {
+    "en": "Installation incomplete",
+    "es": "Instalación incompleta",
+    "pt-BR": "Instalação incompleta"
+  },
+  "Update incomplete": {
+    "en": "Update incomplete",
+    "es": "Actualización incompleta",
+    "pt-BR": "Atualização incompleta"
+  },
+  "Restore incomplete": {
+    "en": "Restore incomplete",
+    "es": "Restauración incompleta",
+    "pt-BR": "Restauração incompleta"
+  },
+  "Needs review": {
+    "en": "Needs review",
+    "es": "Requiere revisión",
+    "pt-BR": "Precisa de revisão"
+  },
+  "Panel update incomplete. Choose Resume installation (32) to continue or roll back.": {
+    "en": "Panel update incomplete. Choose Resume installation (32) to continue or roll back.",
+    "es": "Actualización del Panel incompleta. Elige Reanudar instalación (32) para continuar o revertir.",
+    "pt-BR": "Atualização do Painel incompleta. Escolha Retomar instalação (32) para continuar ou reverter."
+  },
+  "An operation was interrupted. Choose Resume installation (32) to continue.": {
+    "en": "An operation was interrupted. Choose Resume installation (32) to continue.",
+    "es": "Una operación se interrumpió. Elige Reanudar instalación (32) para continuar.",
+    "pt-BR": "Uma operação foi interrompida. Escolha Retomar instalação (32) para continuar."
+  },
+  "A component needs manual review. Choose Status and diagnostics (14).": {
+    "en": "A component needs manual review. Choose Status and diagnostics (14).",
+    "es": "Un componente requiere revisión manual. Elige Estado y diagnóstico (14).",
+    "pt-BR": "Um componente precisa de revisão manual. Escolha Status e diagnóstico (14)."
+  },
+  "Duration: {value}": {
+    "en": "Duration: {value}",
+    "es": "Duración: {value}",
+    "pt-BR": "Duração: {value}"
   }
 }

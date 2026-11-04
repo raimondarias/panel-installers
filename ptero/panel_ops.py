@@ -372,14 +372,31 @@ class PanelMixin:
             return
         if version_key(release["tag_name"]) < version_key(state["version"]):
             raise InstallerError("No se permiten downgrades del Panel; restaura un backup de esa versión.")
+        previous = state["version"]
+        self.ui.card("Panel update plan", [
+            self.ui.tr("Update: {current} → {target}").format(current=previous, target=release["tag_name"]),
+            "A verified backup is created before any code or database change.",
+            "The Panel is unavailable while the new migrations run.",
+            self.ui.tr("If anything fails, you can roll back to {version}.").format(version=previous)])
         self.ui.confirm("ACTUALIZAR PANEL")
-        if state.get("method") == "standalone":
-            return self.native(state).update(release)
+        try:
+            if state.get("method") == "standalone":
+                self.native(state).update(release)
+            else:
+                self.update_docker_panel(state, release)
+        except InstallerError as exc:
+            self.offer_rollback(previous, exc)
+            raise
+        self.ui.say(self.ui.tr("If something looks wrong, choose Roll back Panel update to return to {version}.").format(version=previous), "muted")
+
+    def update_docker_panel(self, state, release):
+        previous = state["version"]
         # Descargar antes de interrumpir el Panel; copia antes de modificar el esquema.
         image = self.pin_image("ghcr.io/pterodactyl/panel:" + release["tag_name"])
         backup = self.backup_panel()
         self.dc("stop", "panel", label="Deteniendo Panel para actualizar")
-        state.update(version=release["tag_name"], panel_image=image, status="updating", recovery_backup=str(backup))
+        state.update(version=release["tag_name"], panel_image=image, status="updating", recovery_backup=str(backup),
+                     previous_version=previous)
         self.save_panel(state)
         try:
             self.prepare_mysql_client(state)
@@ -394,6 +411,26 @@ class PanelMixin:
         state["status"] = "ready"
         self.save_panel(state)
         self.ui.say("Panel actualizado y comprobado por el healthcheck oficial.", "ok")
+
+    def offer_rollback(self, previous, error):
+        """After a failed update, offer the matching rollback; otherwise keep the Panel stopped."""
+        from .rollback import available
+        try:
+            state = self.panel_state()
+        except InstallerError:
+            return
+        if state.get("status") != "updating" or not available(state):
+            return
+        self.ui.say(self.run.redact(str(error)), "error")
+        if not self.ui.yes(self.ui.tr("Roll back to {version} now?").format(version=previous), True):
+            self.ui.say("The Panel stays stopped. Choose Resume installation to retry, or Roll back Panel update.", "warn")
+            return
+        self.rollback_panel(after_failure=True)
+        raise InstallerError(self.ui.tr("The update failed and the Panel was rolled back to {version}.").format(version=previous)) from error
+
+    def rollback_panel(self, after_failure=False):
+        from .rollback import rollback
+        return rollback(self, after_failure)
 
     def uninstall_panel(self, confirmed=False):
         state = self.panel_state()

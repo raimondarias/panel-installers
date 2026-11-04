@@ -2329,5 +2329,173 @@
   },
   "No managed Wings installation is available to remove.": {
     "en": "No managed Wings installation is available to remove."
+  },
+  "No Panel update can be rolled back. A recovery point is saved automatically each time you update the Panel.": {
+    "en": "No Panel update can be rolled back. A recovery point is saved automatically each time you update the Panel."
+  },
+  "The recovery backup is no longer available: {path}": {
+    "en": "The recovery backup is no longer available: {path}"
+  },
+  "The recovery backup does not contain a readable Panel state.": {
+    "en": "The recovery backup does not contain a readable Panel state."
+  },
+  "The recovery backup does not record a valid Panel version.": {
+    "en": "The recovery backup does not record a valid Panel version."
+  },
+  "The recovery backup is not older than the installed Panel; there is nothing to roll back.": {
+    "en": "The recovery backup is not older than the installed Panel; there is nothing to roll back."
+  },
+  "The recovery backup was made for a different deployment method or database engine.": {
+    "en": "The recovery backup was made for a different deployment method or database engine."
+  },
+  "The recovery backup belongs to a different Panel database.": {
+    "en": "The recovery backup belongs to a different Panel database."
+  },
+  "Installed: {value}": {
+    "en": "Installed: {value}"
+  },
+  "Roll back to: {value}": {
+    "en": "Roll back to: {value}"
+  },
+  "Recovery backup: {value}": {
+    "en": "Recovery backup: {value}"
+  },
+  "The Panel stayed stopped after the backup, so no Panel data is lost.": {
+    "en": "The Panel stayed stopped after the backup, so no Panel data is lost."
+  },
+  "Panel changes made after this backup will be lost.": {
+    "en": "Panel changes made after this backup will be lost."
+  },
+  "A safety copy of the current Panel is created first.": {
+    "en": "A safety copy of the current Panel is created first."
+  },
+  "Application keys, credentials, certificates and current settings are kept.": {
+    "en": "Application keys, credentials, certificates and current settings are kept."
+  },
+  "Panel rollback plan": {
+    "en": "Panel rollback plan"
+  },
+  "ROLL BACK PANEL": {
+    "en": "ROLL BACK PANEL"
+  },
+  "The safety copy failed. Continue the rollback without it?": {
+    "en": "The safety copy failed. Continue the rollback without it?"
+  },
+  "Panel rolled back": {
+    "en": "Panel rolled back"
+  },
+  "Running version: {value}": {
+    "en": "Running version: {value}"
+  },
+  "Safety copy of {version}: {path}": {
+    "en": "Safety copy of {version}: {path}"
+  },
+  "Update again when a fixed release is available.": {
+    "en": "Update again when a fixed release is available."
+  },
+  "Panel rollback complete.": {
+    "en": "Panel rollback complete."
+  },
+  "The recovery backup does not contain the Panel database.": {
+    "en": "The recovery backup does not contain the Panel database."
+  },
+  "The recovery backup has different application keys; use Restore Panel from backup instead.": {
+    "en": "The recovery backup has different application keys; use Restore Panel from backup instead."
+  },
+  "Stopping the Panel for the rollback": {
+    "en": "Stopping the Panel for the rollback"
+  },
+  "Clearing the updated database schema": {
+    "en": "Clearing the updated database schema"
+  },
+  "Restoring the pre-update database": {
+    "en": "Restoring the pre-update database"
+  },
+  "Downloading the previous Panel image": {
+    "en": "Downloading the previous Panel image"
+  },
+  "Starting the previous Panel version": {
+    "en": "Starting the previous Panel version"
+  },
+  "Panel update plan": {
+    "en": "Panel update plan"
+  },
+  "Update: {current} → {target}": {
+    "en": "Update: {current} → {target}"
+  },
+  "A verified backup is created before any code or database change.": {
+    "en": "A verified backup is created before any code or database change."
+  },
+  "The Panel is unavailable while the new migrations run.": {
+    "en": "The Panel is unavailable while the new migrations run."
+  },
+  "If anything fails, you can roll back to {version}.": {
+    "en": "If anything fails, you can roll back to {version}."
+  },
+  "If something looks wrong, choose Roll back Panel update to return to {version}.": {
+    "en": "If something looks wrong, choose Roll back Panel update to return to {version}."
+  },
+  "Roll back to {version} now?": {
+    "en": "Roll back to {version} now?"
+  },
+  "The Panel stays stopped. Choose Resume installation to retry, or Roll back Panel update.": {
+    "en": "The Panel stays stopped. Choose Resume installation to retry, or Roll back Panel update."
+  },
+  "The update failed and the Panel was rolled back to {version}.": {
+    "en": "The update failed and the Panel was rolled back to {version}."
+  },
+  "the previous version": {
+    "en": "the previous version"
+  },
+  "The last Panel update did not finish": {
+    "en": "The last Panel update did not finish"
+  },
+  "Continue the update to {version}": {
+    "en": "Continue the update to {version}"
+  },
+  "Run the remaining update phases again": {
+    "en": "Run the remaining update phases again"
+  },
+  "Roll back to {version}": {
+    "en": "Roll back to {version}"
+  },
+  "Restore the verified pre-update backup and previous release": {
+    "en": "Restore the verified pre-update backup and previous release"
+  },
+  "Roll back Panel update": {
+    "en": "Roll back Panel update"
+  },
+  "Return to the Panel version before the last update, using its verified backup.": {
+    "en": "Return to the Panel version before the last update, using its verified backup."
+  },
+  "No managed Panel is installed, so there is no update to roll back.": {
+    "en": "No managed Panel is installed, so there is no update to roll back."
+  },
+  "Linked, not started": {
+    "en": "Linked, not started"
+  },
+  "Installation incomplete": {
+    "en": "Installation incomplete"
+  },
+  "Update incomplete": {
+    "en": "Update incomplete"
+  },
+  "Restore incomplete": {
+    "en": "Restore incomplete"
+  },
+  "Needs review": {
+    "en": "Needs review"
+  },
+  "Panel update incomplete. Choose Resume installation (32) to continue or roll back.": {
+    "en": "Panel update incomplete. Choose Resume installation (32) to continue or roll back."
+  },
+  "An operation was interrupted. Choose Resume installation (32) to continue.": {
+    "en": "An operation was interrupted. Choose Resume installation (32) to continue."
+  },
+  "A component needs manual review. Choose Status and diagnostics (14).": {
+    "en": "A component needs manual review. Choose Status and diagnostics (14)."
+  },
+  "Duration: {value}": {
+    "en": "Duration: {value}"
   }
 }

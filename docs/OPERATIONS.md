@@ -104,13 +104,14 @@ The node API is accessed over verified HTTPS without putting the Auto-Deploy tok
 | 28–30 | Schedule encrypted backups / run backup now / download snapshot |
 | 31–32 | Detailed health / resume installation |
 | 33–34 | Install remote Wings / prepare remote game SQL |
+| 35 | Roll back the last Panel update |
 | 0 | Exit |
 
 All listed operations are implemented. A component must be installed and configured before actions that depend on it can run. On a fresh machine, select an action to see its prerequisite and the installation step that prepares it.
 
 In the TUI, these operations are grouped under **Install**, **Maintenance**, **Game databases**, **Backups**, **Remove**, **Nodes** and **Preferences**. The numbers above are stable keyboard shortcuts and the layout used by `--plain`.
 
-These operations are also available as direct commands: `install-all`, `install-panel`, `install-wings`, `uninstall-all`, `uninstall-panel`, `uninstall-wings`, `update-panel`, `update-wings`, `configure-wings`, `tls-wings`, `backup-panel`, `backup-wings`, `restore-panel`, `diagnose`, `restart`, `logs`, `smtp`, `admin`, `firewall`, `configure-database`, `database-credentials`, `create-node`, `backup-schedule`, `backup-run`, `backup-download`, `health`, `resume`, `remote-node` and `remote-database`. Confirmations still apply.
+These operations are also available as direct commands: `install-all`, `install-panel`, `install-wings`, `uninstall-all`, `uninstall-panel`, `uninstall-wings`, `update-panel`, `update-wings`, `configure-wings`, `tls-wings`, `backup-panel`, `backup-wings`, `restore-panel`, `diagnose`, `restart`, `logs`, `smtp`, `admin`, `firewall`, `configure-database`, `database-credentials`, `create-node`, `backup-schedule`, `backup-run`, `backup-download`, `health`, `resume`, `remote-node`, `remote-database` and `rollback-panel`. Confirmations still apply.
 
 ## Backups, updates and removal
 
@@ -122,7 +123,7 @@ Scheduled encrypted backups select Panel and/or Wings configuration, including W
 
 Restoration requires empty managed Panel/application directories and preserves the original APP_KEY/HASHIDS_SALT. Standalone restore also requires an empty private Redis directory. The backup's deployment method and database engine are restored; this is not a Docker ↔ standalone or MySQL ↔ MariaDB migration tool. Keep the original domain/IP/DNS or explicitly adapt the configuration afterward.
 
-Panel updates make a backup before migration. A failed migration leaves the new code offline/in maintenance, with a recovery backup path. Resume via Install Panel, or restore the backup into a clean target. Code is not automatically downgraded onto a potentially changed schema. Wings updates recover the previous executable/image and node configuration if startup fails.
+Panel updates show a plan (current → target version) and make a verified backup before migration; that backup becomes the update's rollback point. If the update fails, the installer offers an immediate rollback; declining leaves the new code offline/in maintenance and **Resume installation** then offers to continue the update or roll back. **Roll back Panel update** (35) also works after a successful update. Code is never started on a schema it does not match: see [guided update rollback](ADVANCED.md#guided-panel-update-rollback). Wings updates recover the previous executable/image and node configuration if startup fails.
 
 Uninstall Panel backs it up first and preserves data by default. Permanent data deletion requires another written confirmation and a successful backup. Uninstall Wings backs up configuration, removes only its daemon/service container and keeps game containers, worlds, Docker and certificates. Games can remain running after removing Wings; stop them from the Panel first if that is your intention. No global Docker prune or volume deletion is performed.
 
@@ -196,7 +197,7 @@ Full clean-VPS deployments, public certificates, email delivery and running a ga
 
 [Guía rápida en español](ES.md) · [Guia rápido em português brasileiro](PT-BR.md).
 
-Next priorities: [ARM64 execution, independent provider tests, notifications and guided rollback](ROADMAP.md).
+Next priorities: [ARM64 execution, independent provider tests, notifications](ROADMAP.md).
 
 ## Upstream references
 

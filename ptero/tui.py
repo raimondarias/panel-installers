@@ -7,7 +7,7 @@ import threading
 import time
 
 from . import __version__
-from .navigation import GROUPS, Item
+from .navigation import GROUPS, Item, attention, status_label
 from .terminal_text import cell_width, clip, wrap
 
 
@@ -126,11 +126,16 @@ class Terminal:
             size = (self.width - 6) // 3
             for index, (key, label) in enumerate((("panel", "Panel"), ("wings", "Wings"), ("database", "Game SQL"))):
                 state = self.dashboard[key]
-                status = {"absent": "Not installed", "ready": "Configured", "stopped": "Stopped", "pending": "Not linked"}.get(state, "Needs attention")
-                if key == "database" and state == "absent":
-                    status = "Not configured"
-                self.put(4, self.left + 2 + index * size, self.tr(label) + " · " + self.tr(status), "ok" if state == "ready" else "muted" if state == "absent" else "warn", size - 1)
-            self.put(5, self.left + 2, self.dashboard.get("url") or self.tr("New machine? Start with Install Panel and Wings."), "muted", self.width - 4)
+                text = ("● " if state == "ready" else "○ " if state == "absent" else "▲ ") + self.tr(label) + " · " + self.tr(status_label(key, self.dashboard))
+                version = self.dashboard.get(key + "_version")
+                if version and state != "absent" and cell_width(text + " · " + version) <= size - 1:
+                    text += " · " + version
+                self.put(4, self.left + 2 + index * size, text, "ok" if state == "ready" else "muted" if state == "absent" else "warn", size - 1)
+            hint = attention(self.dashboard)
+            if hint:
+                self.put(5, self.left + 2, self.tr(hint), "warn", self.width - 4)
+            else:
+                self.put(5, self.left + 2, self.dashboard.get("url") or self.tr("New machine? Start with Install Panel and Wings."), "muted", self.width - 4)
         else:
             self.put(4, self.left + 2, subtitle or self.tr("A guided setup for your Panel and game nodes."), "muted", self.width - 4)
             self.put(5, self.left + 2, platform.node(), "muted", self.width - 4)
