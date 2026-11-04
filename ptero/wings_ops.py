@@ -1,0 +1,269 @@
+"""Wings lifecycle: verified download, linking, TLS, backup, update and removal."""
+import hashlib
+import json
+import os
+import platform
+import re
+import shlex
+import shutil
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+from . import __version__
+from .common import (PROJECT, SCHEMA, WINGS_VERSION, InstallerError, NoRedirect, atomic_write,
+                     node_configuration, valid_domain, valid_email, write_json)
+
+
+class WingsMixin:
+    def download_wings(self, release, target):
+        arch = "amd64" if platform.machine() == "x86_64" else "arm64"
+        name = "wings_linux_" + arch
+        asset = next((a for a in release["assets"] if a["name"] == name), None)
+        if not asset or not re.fullmatch(r"sha256:[0-9a-f]{64}", asset.get("digest") or ""):
+            raise InstallerError("GitHub no publica un SHA-256 para este binario; se cancela la descarga.")
+        url = asset["browser_download_url"]
+        expected = f"https://github.com/pterodactyl/wings/releases/download/{release['tag_name']}/{name}"
+        if url != expected:
+            raise InstallerError("La descarga de Wings no corresponde al repositorio oficial.")
+        target.parent.mkdir(parents=True, exist_ok=True, mode=0o755)
+        digest = hashlib.sha256()
+        try:
+            with self.ui.busy("Descargando y verificando Wings"), urllib.request.urlopen(url, timeout=90) as response, target.open("wb") as stream:
+                while chunk := response.read(1024 * 1024):
+                    digest.update(chunk)
+                    stream.write(chunk)
+            if "sha256:" + digest.hexdigest() != asset["digest"]:
+                raise InstallerError("El SHA-256 de Wings no coincide. No se ejecutará el archivo.")
+            target.chmod(0o755)
+            self.run.run([target, "version"], label="Comprobando ejecutable Wings")
+        except BaseException:
+            target.unlink(missing_ok=True)
+            raise
+
+    def service_text(self):
+        return ("[Unit]\nDescription=Pterodactyl Wings\nAfter=docker.service network-online.target\n"
+                "Wants=network-online.target\nRequires=docker.service\nPartOf=docker.service\n"
+                "StartLimitIntervalSec=180\nStartLimitBurst=30\n\n[Service]\nUser=root\n"
+                f"WorkingDirectory={self.p.config_dir}\nLimitNOFILE=65536\n"
+                f"ExecStart={self.p.wings} --config {self.p.config}\nRestart=on-failure\nRestartSec=5s\n"
+                "\n[Install]\nWantedBy=multi-user.target\n")
+
+    def install_wings(self):
+        self.ui.step(1, 3, "Wings installation")
+        self.check_host(wings=True)
+        if self.p.wings_state.exists():
+            state = self.load(self.p.wings_state)
+            if state.get("method") == "docker":
+                from .wings import DockerWings
+                DockerWings(self, state).save()
+                self.ui.say("Wings container already installed. Use configure or update.")
+                return
+            if self.p.wings.exists() and self.p.service.exists():
+                self.ui.say(f"Wings ya está gestionado ({state['status']}). Usa configurar o actualizar.")
+                return
+            self.ui.say("Instalación de Wings interrumpida: se reparará la versión registrada.", "warn")
+            release = self.release("wings", state["version"])
+        else:
+            if any(path.exists() for path in (self.p.wings, self.p.config, self.p.service)):
+                raise InstallerError("Hay una instalación de Wings ajena a este script; no se sobrescribe.")
+            release = self.choose_release("wings", WINGS_VERSION)
+        method = state.get("method", "standalone") if self.p.wings_state.exists() else self.ui.choice("Wings deployment", [
+            ("standalone", "Standalone daemon (Recommended)", "A systemd service managing Docker game containers"),
+            ("docker", "Docker container", "A Wings container with host networking and Docker socket access")])
+        self.ui.confirm("INSTALAR WINGS")
+        self.ui.step(2, 3, "Deploying Wings")
+        self.docker()
+        if method == "docker":
+            from .wings import DockerWings
+            state = {"schema": SCHEMA, "owner": PROJECT, "method": "docker", "version": release["tag_name"],
+                     "status": "pending", "image": self.pin_image("ghcr.io/pterodactyl/wings:" + release["tag_name"])}
+            DockerWings(self, state).save()
+            if self.ui.yes("¿Vincular Wings al Panel ahora?", True):
+                self.configure_wings()
+            else:
+                self.ui.say("Wings queda detenido hasta completar «Configurar Wings».", "warn")
+            return
+        staged = self.p.wings.with_name(".wings-installer-new")
+        self.download_wings(release, staged)
+        self.p.config_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        # Registrar antes de publicar: un fallo posterior permite reanudar/configurar.
+        write_json(self.p.wings_state, {"schema": SCHEMA, "owner": PROJECT, "version": release["tag_name"],
+                                       "status": "pending"})
+        os.replace(staged, self.p.wings)
+        atomic_write(self.p.service, self.service_text(), 0o644)
+        self.run.run(["systemctl", "daemon-reload"])
+        self.ui.say("Binario Wings instalado y verificado. Falta vincular el nodo.", "ok")
+        if self.ui.yes("¿Vincular Wings al Panel ahora?", True):
+            self.configure_wings()
+        else:
+            self.ui.say("Wings queda detenido hasta completar «Configurar Wings».", "warn")
+
+    def configure_wings(self):
+        state = self.load(self.p.wings_state)
+        if self.p.state.exists() and self.panel_state().get("status") == "ready":
+            method = self.ui.choice("Node connection method", [("automatic", "Create node automatically (Recommended)", "Create location, node and allocations, then configure Wings"), ("manual", "Use an existing node token", "Link a node already created in the Panel")])
+            if method == "automatic":
+                return self.create_node()
+        self.ui.step(3, 3, "Node connection")
+        from .node_plan import connection
+        known = self.panel_state() if self.p.state.exists() else None
+        url, node, token = connection(self, known["url"] if known else None)
+        if self.p.config.exists():
+            self.ui.say("Se genera una configuración nueva. Reaplica tus ajustes manuales desde la copia si los necesitas.", "warn")
+            self.backup_wings()
+        self.docker()
+        # Mismo endpoint que wings configure; HTTPS con verificación y sin token en argv.
+        endpoint = url + f"/api/application/nodes/{node}/configuration"
+        request = urllib.request.Request(endpoint, headers={
+            "Authorization": "Bearer " + token, "Accept": "application/vnd.pterodactyl.v1+json",
+            "User-Agent": "ptero-installer/" + __version__})
+        try:
+            with self.ui.busy("Obteniendo configuración del nodo"), urllib.request.build_opener(NoRedirect()).open(request, timeout=30) as response:
+                body = response.read(1024 * 1024 + 1)
+            if len(body) > 1024 * 1024:
+                raise InstallerError("Configuración del nodo demasiado grande.")
+            config = node_configuration(json.loads(body), url)
+        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+            raise InstallerError("No se pudo obtener la configuración. Comprueba URL, ID y token Auto-Deploy.") from exc
+        self.run.secrets.update((config["token"], config["token_id"]))
+        # JSON es un subconjunto de YAML y Wings completa los valores predeterminados.
+        from .networking import wings_network
+        wings_network(self, config)
+        write_json(self.p.config, config)
+        if state.get("method", "standalone") == "standalone":
+            atomic_write(self.p.service, self.service_text(), 0o644)
+            self.run.run(["systemctl", "daemon-reload"])
+        state.update(status="configured", panel_url=url, node=node)
+        write_json(self.p.wings_state, state)
+        self.ui.say("Si el Panel usa HTTPS, activa SSL en el nodo y emite su certificado antes de iniciar.")
+        if self.ui.yes("¿Emitir certificado SSL para Wings ahora?"):
+            self.wings_tls()
+        self.start_wings()
+
+    def start_wings(self):
+        state = self.load(self.p.wings_state)
+        if state.get("method") == "docker":
+            from .wings import DockerWings
+            return DockerWings(self, state).start()
+        self.run.run(["systemctl", "enable", "wings"], label="Activando Wings")
+        self.run.run(["systemctl", "restart", "wings"], label="Iniciando Wings con la configuración actual")
+        # systemctl start puede devolver éxito antes de que Wings termine de arrancar.
+        with self.ui.busy("Comprobando estabilidad inicial de Wings"):
+            for _ in range(10):
+                time.sleep(1)
+                self.run.run(["systemctl", "is-active", "--quiet", "wings"])
+        state = self.load(self.p.wings_state)
+        state["status"] = "ready"
+        write_json(self.p.wings_state, state)
+        self.ui.say("Wings está activo. Comprueba que el nodo aparece conectado en el Panel.", "ok")
+
+    def wings_tls(self):
+        self.load(self.p.wings_state)
+        if self.p.state.exists() and self.panel_state().get("method") == "standalone":
+            return self.native().wings_tls()
+        domain = self.ui.ask("Dominio de Wings, ej. node.ejemplo.com", validator=valid_domain)
+        email = self.ui.ask("Correo Let's Encrypt", validator=valid_email)
+        self.ui.say("En Configuration del nodo activa SSL y usa estas rutas:")
+        self.ui.say(f"/etc/letsencrypt/live/{domain}/fullchain.pem\n/etc/letsencrypt/live/{domain}/privkey.pem")
+        self.ui.say("El dominio debe apuntar a este host y permitir desafíos HTTP en el puerto 80.")
+        panel = self.panel_state() if self.p.state.exists() else None
+        if panel and panel["http_port"] == 80:
+            self.ui.say("El Panel se pausará brevemente al emitir/renovar este certificado para liberar el puerto 80.", "warn")
+        self.ui.confirm("EMITIR SSL WINGS")
+        self.run.run(["apt-get", "update"], label="Actualizando APT")
+        self.run.run(["apt-get", "install", "-y", "certbot"], label="Instalando Certbot")
+        pre = self.p.root / "usr/local/sbin/ptero-acme-pre"
+        post = self.p.root / "usr/local/sbin/ptero-acme-post"
+        flag = self.p.root / "run/ptero-acme-panel-running"
+        command = f"docker compose --project-name {PROJECT} --file {shlex.quote(str(self.p.compose))}"
+        atomic_write(pre, "#!/bin/sh\nset -eu\n" +
+                     f"if [ -f {shlex.quote(str(self.p.compose))} ] && {command} ps --services --status running | grep -qx panel; then\n" +
+                     f"  touch {shlex.quote(str(flag))}\n  {command} stop panel\nfi\n", 0o700)
+        atomic_write(post, "#!/bin/sh\nset -eu\n" +
+                     f"if [ -f {shlex.quote(str(flag))} ]; then\n  {command} up -d panel\n" +
+                     f"  rm -f {shlex.quote(str(flag))}\nfi\n", 0o700)
+        atomic_write(self.p.hook, self.wings_renew_hook(), 0o700)
+        was_running = panel and panel["http_port"] == 80 and "panel" in self.running_services()
+        try:
+            if was_running:
+                self.dc("stop", "panel", label="Liberando puerto 80 para el certificado del nodo")
+            self.port_free("0.0.0.0", 80)
+            self.run.run(["certbot", "certonly", "--standalone", "--non-interactive", "--agree-tos",
+                          "--email", email, "-d", domain, "--pre-hook", pre, "--post-hook", post],
+                         label="Emitiendo certificado Wings")
+        finally:
+            if was_running:
+                self.dc("up", "-d", "--wait", "--wait-timeout", "360", "panel")
+        self.run.run(["systemctl", "enable", "--now", "certbot.timer"])
+        self.ui.say("Certificado emitido. Vuelve a sincronizar la configuración si cambiaste SSL en el Panel.", "ok")
+
+    def wings_renew_hook(self):
+        from .wings import renewal_hook
+        return renewal_hook(self)
+
+    def backup_wings(self):
+        self.load(self.p.wings_state)
+        self.p.backups.mkdir(parents=True, exist_ok=True, mode=0o700)
+        target = self.p.backups / ("wings-" + self.stamp())
+        target.mkdir(mode=0o700)
+        for path in (self.p.wings_state, self.p.config, self.p.service, self.p.base / "wings-compose.json"):
+            if path.exists():
+                shutil.copy2(path, target / path.name)
+                (target / path.name).chmod(0o600)
+        self.ui.say(f"Configuración de Wings guardada: {target}", "ok")
+        return target
+
+    def update_wings(self):
+        state = self.load(self.p.wings_state)
+        release = self.choose_release("wings", "auto")
+        if release["tag_name"] == state["version"]:
+            self.ui.say("Ya tienes esa versión.", "ok")
+            return
+        if state.get("method") == "docker":
+            from .wings import DockerWings
+            return DockerWings(self, state).update(release)
+        self.ui.confirm("ACTUALIZAR WINGS")
+        staged = self.p.wings.with_name(".wings-installer-new")
+        old = self.p.wings.with_name(".wings-installer-old")
+        self.download_wings(release, staged)
+        backup = self.backup_wings()
+        active = self.run.run(["systemctl", "is-active", "--quiet", "wings"], check=False)[0] == 0
+        shutil.copy2(self.p.wings, old)
+        try:
+            if active:
+                self.run.run(["systemctl", "stop", "wings"])
+            os.replace(staged, self.p.wings)
+            if active:
+                self.start_wings()
+            state["version"] = release["tag_name"]
+            write_json(self.p.wings_state, state)
+        except BaseException:
+            os.replace(old, self.p.wings)
+            if (backup / "config.yml").exists():
+                shutil.copy2(backup / "config.yml", self.p.config)
+            write_json(self.p.wings_state, state)
+            if active:
+                self.run.run(["systemctl", "restart", "wings"], check=False)
+            raise
+        finally:
+            old.unlink(missing_ok=True)
+            staged.unlink(missing_ok=True)
+        self.ui.say("Wings actualizado; los contenedores de juegos se conservan.", "ok")
+
+    def uninstall_wings(self, confirmed=False):
+        state = self.load(self.p.wings_state)
+        if state.get("method") == "docker":
+            from .wings import DockerWings
+            return DockerWings(self, state).uninstall(confirmed)
+        if not confirmed:
+            self.ui.confirm("DESINSTALAR WINGS")
+        self.ui.say("Los juegos y sus contenedores seguirán existiendo. Apágalos desde el Panel si lo necesitas.", "warn")
+        self.backup_wings()
+        self.run.run(["systemctl", "disable", "--now", "wings"], label="Deteniendo y deshabilitando Wings")
+        # Los hooks ACME siguen siendo necesarios para renovar certificados conservados.
+        for path in (self.p.wings, self.p.service, self.p.config, self.p.wings_state):
+            path.unlink(missing_ok=True)
+        self.run.run(["systemctl", "daemon-reload"])
+        self.ui.say("Wings desinstalado. Archivos de juegos, Docker y certificados conservados.", "ok")

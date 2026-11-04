@@ -1,0 +1,74 @@
+"""Command execution with secret redaction, and managed filesystem locations."""
+import contextlib
+import os
+from pathlib import Path
+import re
+import subprocess
+import tempfile
+
+from .common import InstallerError
+
+
+class Runner:
+    def __init__(self, ui, log):
+        self.ui, self.log = ui, Path(log)
+        self.secrets = set()
+
+    def redact(self, text):
+        for secret in sorted(self.secrets, key=len, reverse=True):
+            if secret:
+                text = text.replace(secret, "[OCULTO]")
+        text = re.sub(r"(?i)((?:password|token(?:_id)?|app_key|hashids_salt)[\"']?\s*[:=]\s*)[^\s,]+",
+                      r"\1[OCULTO]", text)
+        text = re.sub(r"(?i)Bearer\s+\S+", "Bearer [OCULTO]", text)
+        text = re.sub(r"ptl[a-z]_[A-Za-z0-9_-]+", "[TOKEN OCULTO]", text)
+        return text
+
+    def record(self, text):
+        self.log.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with self.log.open("a", encoding="utf-8") as stream:
+            self.log.chmod(0o600)
+            stream.write(self.redact(text) + "\n")
+
+    def run(self, args, label=None, interactive=False, output=None, input_file=None,
+            check=True, timeout=1800, env=None, umask=0o077, cwd=None):
+        args = [str(arg) for arg in args]
+        self.record("$ " + " ".join(args))
+        # Archivos temporales evitan acumular dumps y salidas de apt en memoria.
+        with tempfile.TemporaryFile() as captured, tempfile.TemporaryFile() as errors:
+            with (self.ui.busy(label) if label and not interactive else contextlib.nullcontext()), (self.ui.suspend() if interactive else contextlib.nullcontext()):
+                try:
+                    result = subprocess.run(
+                        args, stdin=input_file, stdout=None if interactive else (output or captured),
+                        stderr=None if interactive else errors, check=False,
+                        timeout=None if interactive else timeout,
+                        env={**os.environ, "DEBIAN_FRONTEND": "noninteractive", **(env or {})}, umask=umask, cwd=cwd)
+                except (OSError, subprocess.TimeoutExpired) as exc:
+                    raise InstallerError(f"No se pudo ejecutar {args[0]}: {exc}") from exc
+            captured.seek(0)
+            errors.seek(0)
+            text = captured.read().decode("utf-8", "replace")
+            error = errors.read().decode("utf-8", "replace")
+            self.record(text + error)
+            if result.returncode and check:
+                detail = self.redact((error + "\n" + text)[-4800:])
+                raise InstallerError(f"Falló {label or args[0]} (código {result.returncode}).\n{detail}")
+            return result.returncode, text
+
+
+class Paths:
+    def __init__(self, root=Path("/")):
+        self.root = Path(root)
+        self.base = self.root / "opt/pterodactyl-installer"
+        self.panel = self.base / "panel"
+        self.data = self.panel / "data"
+        self.state = self.panel / "state.json"
+        self.compose = self.panel / "compose.json"
+        self.backups = self.root / "var/backups/pterodactyl-installer"
+        self.log = self.root / "var/log/pterodactyl-installer/installer.log"
+        self.wings = self.root / "usr/local/bin/wings"
+        self.wings_state = self.base / "wings.json"
+        self.config_dir = self.root / "etc/pterodactyl"
+        self.config = self.config_dir / "config.yml"
+        self.service = self.root / "etc/systemd/system/wings.service"
+        self.hook = self.root / "etc/letsencrypt/renewal-hooks/deploy/ptero-wings.sh"
