@@ -89,6 +89,8 @@ def rollback(installer, after_failure=False):
     if state["status"] not in ("ready", "updating"):
         raise InstallerError("Finish or resume the Panel installation before using this option.")
     archive, saved = inspect(i, state)
+    from .compat import check
+    check(i, panel=saved["version"])
     ui.card("Panel rollback plan", plan_rows(ui, state, saved, archive, after_failure))
     if not after_failure:
         ui.confirm("ROLL BACK PANEL")

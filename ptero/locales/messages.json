@@ -4028,5 +4028,35 @@
     "en": "Saving the simulated retention setting",
     "es": "Guardando el ajuste de retención simulado",
     "pt-BR": "Salvando a configuração de retenção simulada"
+  },
+  "Panel {panel} requires Wings {oldest} or newer within Wings {major}.x; this node has Wings {wings}.": {
+    "en": "Panel {panel} requires Wings {oldest} or newer within Wings {major}.x; this node has Wings {wings}.",
+    "es": "El Panel {panel} requiere Wings {oldest} o posterior dentro de Wings {major}.x; este nodo tiene Wings {wings}.",
+    "pt-BR": "O Painel {panel} requer o Wings {oldest} ou mais recente dentro do Wings {major}.x; este nó tem o Wings {wings}."
+  },
+  "Untested Panel and Wings combination": {
+    "en": "Untested Panel and Wings combination",
+    "es": "Combinación de Panel y Wings no probada",
+    "pt-BR": "Combinação de Painel e Wings não testada"
+  },
+  "Panel {panel} with Wings {wings}": {
+    "en": "Panel {panel} with Wings {wings}",
+    "es": "Panel {panel} con Wings {wings}",
+    "pt-BR": "Painel {panel} com Wings {wings}"
+  },
+  "Validated combination: Panel {panel} with Wings {wings}": {
+    "en": "Validated combination: Panel {panel} with Wings {wings}",
+    "es": "Combinación validada: Panel {panel} con Wings {wings}",
+    "pt-BR": "Combinação validada: Painel {panel} com Wings {wings}"
+  },
+  "Both releases are compatible by version, but this installer has not tested them together.": {
+    "en": "Both releases are compatible by version, but this installer has not tested them together.",
+    "es": "Ambas versiones son compatibles por número de versión, pero este instalador no las ha probado juntas.",
+    "pt-BR": "As duas versões são compatíveis pelo número de versão, mas este instalador não as testou juntas."
+  },
+  "Continue with this combination?": {
+    "en": "Continue with this combination?",
+    "es": "¿Continuar con esta combinación?",
+    "pt-BR": "Continuar com esta combinação?"
   }
 }

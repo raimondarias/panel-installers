@@ -812,3 +812,10 @@ Copies of each kind to keep (0-100)|||Copias de cada tipo que se conservan (0-10
 Local backup retention saved.|||Retención de copias locales guardada.|||Retenção de backups locais salva.
 Choose how many local Panel and Wings copies to keep on this server.|||Elige cuántas copias locales del Panel y de Wings conservar en este servidor.|||Escolha quantas cópias locais do Painel e do Wings manter neste servidor.
 Saving the simulated retention setting|||Guardando el ajuste de retención simulado|||Salvando a configuração de retenção simulada
+# 1.3.0: Panel and Wings compatibility
+Panel {panel} requires Wings {oldest} or newer within Wings {major}.x; this node has Wings {wings}.|||El Panel {panel} requiere Wings {oldest} o posterior dentro de Wings {major}.x; este nodo tiene Wings {wings}.|||O Painel {panel} requer o Wings {oldest} ou mais recente dentro do Wings {major}.x; este nó tem o Wings {wings}.
+Untested Panel and Wings combination|||Combinación de Panel y Wings no probada|||Combinação de Painel e Wings não testada
+Panel {panel} with Wings {wings}|||Panel {panel} con Wings {wings}|||Painel {panel} com Wings {wings}
+Validated combination: Panel {panel} with Wings {wings}|||Combinación validada: Panel {panel} con Wings {wings}|||Combinação validada: Painel {panel} com Wings {wings}
+Both releases are compatible by version, but this installer has not tested them together.|||Ambas versiones son compatibles por número de versión, pero este instalador no las ha probado juntas.|||As duas versões são compatíveis pelo número de versão, mas este instalador não as testou juntas.
+Continue with this combination?|||¿Continuar con esta combinación?|||Continuar com esta combinação?

@@ -66,6 +66,8 @@ class WingsMixin:
             if any(path.exists() for path in (self.p.wings, self.p.config, self.p.service)):
                 raise InstallerError("An unmanaged Wings installation exists. It will not be overwritten.")
             release = self.choose_release("wings", WINGS_VERSION)
+        from .compat import check
+        check(self, wings=release["tag_name"])
         method = state.get("method", "standalone") if self.p.wings_state.exists() else self.ui.choice("Wings deployment", [
             ("standalone", "Standalone daemon (Recommended)", "A systemd service managing Docker game containers"),
             ("docker", "Docker container", "A Wings container with host networking and Docker socket access")])
@@ -220,6 +222,8 @@ class WingsMixin:
         if release["tag_name"] == state["version"]:
             self.ui.say("This version is already installed.", "ok")
             return
+        from .compat import check
+        check(self, wings=release["tag_name"])
         if state.get("method") == "docker":
             from .wings import DockerWings
             return DockerWings(self, state).update(release)

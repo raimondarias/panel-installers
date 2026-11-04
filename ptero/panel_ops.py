@@ -369,6 +369,8 @@ class PanelMixin:
         if version_key(release["tag_name"]) < version_key(state["version"]):
             raise InstallerError("Panel downgrades are not allowed. Restore a backup from that version.")
         previous = state["version"]
+        from .compat import check
+        check(self, panel=release["tag_name"])
         self.ui.card("Panel update plan", [
             self.ui.tr("Update: {current} → {target}").format(current=previous, target=release["tag_name"]),
             "A verified backup is created before any code or database change.",
