@@ -20,9 +20,9 @@ class PanelMixin:
         settings = state.get("game_database", {})
         credentials = [state.get("db_password"), state.get("mail_password", ""), state.get("redis_password", "")]
         if not isinstance(settings, dict) or not all(isinstance(value, str) for value in credentials):
-            raise InstallerError("La instalación o copia no pertenece a este instalador.")
+            raise InstallerError("This installation or backup does not belong to this installer.")
         if not isinstance(settings.get("password", ""), str):
-            raise InstallerError("La instalación o copia no pertenece a este instalador.")
+            raise InstallerError("This installation or backup does not belong to this installer.")
         self.run.secrets.update([state["db_password"], state.get("mail_password", "")])
         self.run.secrets.add(state.get("redis_password", ""))
         self.run.secrets.add(settings.get("password", ""))
@@ -54,7 +54,7 @@ class PanelMixin:
             "SESSION_SECURE_COOKIE": "true" if state["url"].startswith("https://") else "false",
             "LE_EMAIL": state["email"] if state.get("tls") else "",
         }
-        # Compose interpola $ incluso en JSON; $$ transmite un dólar literal.
+        # Compose interpolates $ even in JSON; $$ passes a literal dollar sign.
         env = {key: str(value).replace("$", "$$") for key, value in env.items()}
         mounts = [("var", "/app/var"), ("nginx", "/etc/nginx/http.d"),
                   ("certs", "/etc/letsencrypt"), ("logs", "/app/storage/logs"),
@@ -159,11 +159,11 @@ class PanelMixin:
 
     def smtp_settings(self, state):
         state.update(mail_mailer="smtp",
-                     mail_host=self.ui.ask("Host SMTP", validator=valid_host),
-                     mail_port=self.ui.ask("Puerto SMTP", "587", self.valid_port),
-                     mail_user=self.ui.ask("Usuario SMTP"),
-                     mail_password=self.ui.ask("Contraseña SMTP", secret=True),
-                     mail_encryption=self.ui.ask("Cifrado SMTP (tls/ssl/null)", "tls",
+                     mail_host=self.ui.ask("SMTP host", validator=valid_host),
+                     mail_port=self.ui.ask("SMTP port", "587", self.valid_port),
+                     mail_user=self.ui.ask("SMTP username"),
+                     mail_password=self.ui.ask("SMTP password", secret=True),
+                     mail_encryption=self.ui.ask("SMTP encryption (tls/ssl/null)", "tls",
                                                  lambda s: s in ("tls", "ssl", "null")))
         self.run.secrets.add(state["mail_password"])
 
@@ -177,17 +177,17 @@ class PanelMixin:
         if self.p.state.exists():
             state = self.panel_state()
             if state["status"] == "restoring":
-                raise InstallerError("Restauración SQL incompleta. Conserva el backup y repite la restauración en un destino vacío.")
+                raise InstallerError("SQL restore incomplete. Keep the backup and retry in an empty target.")
             if state["status"] == "ready":
-                self.ui.say("El Panel ya está instalado. Usa actualizar, reiniciar o configurar SMTP.", "ok")
+                self.ui.say("Panel already installed. Use update, restart or SMTP settings.", "ok")
                 if state.get("game_database", {}).get("mode", "later") != "later" and not state["game_database"].get("registered"):
                     self.setup_game_database(state)
                 return
-            self.ui.say(f"Instalación gestionada existente: {state['status']}, {state['version']}.")
-            self.ui.confirm("REANUDAR PANEL")
+            self.ui.say(f"Existing managed installation: {state['status']}, {state['version']}.")
+            self.ui.confirm("RESUME PANEL")
         else:
             if self.p.panel.exists() and any(self.p.panel.iterdir()):
-                raise InstallerError("El directorio de destino contiene archivos sin registro; no se sobrescriben.")
+                raise InstallerError("The target contains unregistered files. They will not be overwritten.")
             state = self.new_panel()
             self.save_panel(state)
         if state.get("method") == "standalone":
@@ -198,9 +198,9 @@ class PanelMixin:
         self.run.secrets.add(state["db_password"])
         for name in ("database", "redis", "var", "nginx", "certs", "logs", "extensions", "extension-assets"):
             (self.p.data / name).mkdir(parents=True, exist_ok=True, mode=0o700)
-        # El entrypoint da .env a nginx, pero no cambia el dueño de /app/var.
+        # The entrypoint gives .env to nginx but does not chown /app/var.
         # El bind mount debe permitir a nginx atravesar ese directorio.
-        # Los padres privados de /opt protegen los secretos en el host.
+        # Private /opt parents protect the secrets on the host.
         (self.p.data / "var").chmod(0o755)
         for key, ref in (("panel_image", "ghcr.io/pterodactyl/panel:" + state["version"]),
                          ("database_image", "mysql:8.4" if state.get("database_engine") == "mysql" else "mariadb:11.4"),
@@ -210,20 +210,20 @@ class PanelMixin:
                 self.save_panel(state)
         self.prepare_mysql_client(state)
         self.dc("config", "--quiet")
-        phases.run("SQL and cache", lambda: self.dc("up", "-d", "--wait", "--wait-timeout", "240", "database", "cache", label="Preparando base de datos y Redis"))
-        self.dc("stop", "panel", label="Manteniendo el Panel detenido durante las migraciones")
+        phases.run("SQL and cache", lambda: self.dc("up", "-d", "--wait", "--wait-timeout", "240", "database", "cache", label="Preparing the database and Redis"))
+        self.dc("stop", "panel", label="Keeping the Panel offline during migrations")
         phases.run("Panel migrations", lambda: self.dc("run", "--rm", "-T", "panel", "php", "artisan", "migrate", "--seed", "--force", "--no-interaction",
-                label="Migraciones y eggs oficiales"))
+                label="Running migrations and installing official eggs"))
         if not state.get("admin_created"):
             self.ui.say("Creating the first administrator")
             self.create_admin(state)
             state["admin_created"] = True
             self.save_panel(state)
-        phases.run("Service health", lambda: self.dc("up", "-d", "--wait", "--wait-timeout", "360", "panel", label="Iniciando Panel, colas y scheduler"))
+        phases.run("Service health", lambda: self.dc("up", "-d", "--wait", "--wait-timeout", "360", "panel", label="Starting the Panel, queue worker and scheduler"))
         state["status"] = "ready"
         self.save_panel(state)
-        self.ui.say(f"Panel disponible: {state['url']}", "ok")
-        self.ui.say("Guarda fuera del servidor una copia de data/var/.env (APP_KEY y HASHIDS_SALT).")
+        self.ui.say(f"Panel is available: {state['url']}", "ok")
+        self.ui.say("Keep an off-server copy of data/var/.env (APP_KEY and HASHIDS_SALT).")
         self.setup_game_database(state)
 
     def setup_game_database(self, state=None):
@@ -234,7 +234,7 @@ class PanelMixin:
         from .game_database import plan
         state = self.panel_state()
         if state["status"] != "ready":
-            raise InstallerError("El Panel no está listo; reanuda la instalación/actualización primero.")
+            raise InstallerError("The Panel is not ready. Resume its installation/update first.")
         state["game_database"] = plan(self, state, advanced=True)
         self.ui.confirm("CONFIGURE DATABASE HOST")
         self.save_panel(state)
@@ -271,20 +271,20 @@ class PanelMixin:
                 work = Path(name)
                 try:
                     if "panel" in running:
-                        self.dc("stop", "panel", label="Pausando Panel para una copia consistente")
+                        self.dc("stop", "panel", label="Pausing the Panel for a consistent backup")
                     if "database" not in running:
                         self.dc("up", "-d", "--wait", "--wait-timeout", "240", "database")
                     with (work / "database.sql").open("wb") as stream:
                         self.dc("exec", "-T", "database", "sh", "-c",
                                 self.database_command(state, dump=True),
-                                output=stream, label="Exportando base de datos")
+                                output=stream, label="Exporting the database")
                     if not (work / "database.sql").stat().st_size:
-                        raise InstallerError("El dump SQL está vacío; no se acepta la copia.")
+                        raise InstallerError("SQL dump is empty; the backup was not accepted.")
                     if "cache" in running:
-                        self.dc("stop", "cache", label="Pausando Redis para guardar las colas")
+                        self.dc("stop", "cache", label="Pausing Redis to preserve queued jobs")
                     write_json(work / "state.json", state)
                     write_json(work / "manifest.json", {"schema": SCHEMA, "owner": PROJECT, "type": "panel-backup"})
-                    with self.ui.busy("Comprimiendo configuración, claves y datos"), tarfile.open(temporary, "w:gz", dereference=False) as tar:
+                    with self.ui.busy("Compressing configuration, original keys and data"), tarfile.open(temporary, "w:gz", dereference=False) as tar:
                         for item in work.iterdir():
                             tar.add(item, arcname=item.name, recursive=True)
                         from .backups import PANEL_DATA
@@ -292,7 +292,7 @@ class PanelMixin:
                             if item.name in PANEL_DATA:
                                 tar.add(item, arcname="data/" + item.name, recursive=True)
                 finally:
-                    # Restaurar el estado previo incluso ante errores de disco/SQL.
+                    # Restore the previous service state even after disk or SQL errors.
                     if "cache" in running:
                         self.dc("up", "-d", "--wait", "cache")
                     if "panel" in running:
@@ -302,26 +302,26 @@ class PanelMixin:
             temporary.chmod(0o600)
             os.replace(temporary, target)
             write_checksum(target)
-            self.ui.say(f"Backup creado: {target} (contiene secretos; guárdalo fuera del servidor)", "ok")
+            self.ui.say(f"Backup created: {target} (contains secrets; keep an off-server copy)", "ok")
             return target
         except BaseException:
             temporary.unlink(missing_ok=True)
             raise
 
     def restore_panel(self):
-        archive = Path(self.ui.ask("Ruta absoluta al backup .tar.gz", validator=lambda s: Path(s).is_absolute() and Path(s).is_file()))
+        archive = Path(self.ui.ask("Absolute path to the .tar.gz backup", validator=lambda s: Path(s).is_absolute() and Path(s).is_file()))
         checksum = Path(str(archive) + ".sha256")
         if not checksum.is_file():
-            raise InstallerError("Falta el archivo .sha256 del backup.")
+            raise InstallerError("The backup's .sha256 file is missing.")
         recorded = checksum.read_text().split()
         if not recorded or file_sha256(archive) != recorded[0]:
-            raise InstallerError("El checksum del backup no coincide.")
+            raise InstallerError("Backup checksum does not match.")
         from .backups import panel_archive
         panel_archive(archive)
-        # La restauración se realiza en destino vacío para no mezclar claves ni esquemas.
+        # Restore only into an empty target so keys and schemas never mix.
         if self.p.panel.exists() and any(self.p.panel.iterdir()):
-            raise InstallerError("El destino debe estar vacío. Desinstala/purga el Panel actual después de respaldarlo.")
-        self.ui.confirm("RESTAURAR PANEL")
+            raise InstallerError("The target must be empty. Back up and uninstall/purge the current Panel first.")
+        self.ui.confirm("RESTORE PANEL")
         self.p.backups.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.p.base.mkdir(parents=True, exist_ok=True, mode=0o700)
         with tempfile.TemporaryDirectory(prefix="restore-", dir=self.p.base) as name:
@@ -329,50 +329,50 @@ class PanelMixin:
             secure_extract(archive, work)
             manifest = self.load(work / "manifest.json")
             if manifest.get("type") != "panel-backup":
-                raise InstallerError("El archivo no es un backup de Panel.")
+                raise InstallerError("This file is not a Panel backup.")
             state = self.load(work / "state.json")
             if state.get("method") == "standalone":
                 return self.native(state).restore(work)
             self.docker()
             if not (work / "data/var/.env").is_file() or not (work / "database.sql").is_file():
-                raise InstallerError("La copia no contiene SQL y claves originales del Panel.")
+                raise InstallerError("The backup is missing SQL or the Panel's original keys.")
             self.p.panel.mkdir(parents=True, exist_ok=True, mode=0o700)
-            # Mismo filesystem: conservar dueños, permisos y symlinks de certificados.
+            # Same filesystem: keep owners, permissions and certificate symlinks.
             os.replace(work / "data", self.p.data)
             state["status"] = "restoring"
             self.save_panel(state)
             self.run.secrets.add(state["db_password"])
             for folder in ("database", "logs", "redis", "nginx", "certs", "extensions", "extension-assets"):
                 (self.p.data / folder).mkdir(exist_ok=True, mode=0o700)
-            self.dc("pull", label="Descargando imágenes originales de la copia")
+            self.dc("pull", label="Downloading the backup's original images")
             self.prepare_mysql_client(state)
             self.dc("up", "-d", "--wait", "--wait-timeout", "240", "database", "cache")
             with (work / "database.sql").open("rb") as stream:
                 self.dc("exec", "-T", "database", "sh", "-c",
                         self.database_command(state, dump=False),
-                        input_file=stream, label="Restaurando SQL con sus claves originales")
-            self.dc("up", "-d", "--wait", "--wait-timeout", "360", "panel", label="Arrancando Panel restaurado")
+                        input_file=stream, label="Restoring SQL with its original application keys")
+            self.dc("up", "-d", "--wait", "--wait-timeout", "360", "panel", label="Starting the restored Panel")
             state["status"] = "ready"
             self.save_panel(state)
-        self.ui.say("Panel restaurado. Mantén el dominio/IP original o adapta DNS y configuración.", "ok")
+        self.ui.say("Panel restored. Keep the original domain/IP or update DNS and configuration.", "ok")
 
     def update_panel(self):
         state = self.panel_state()
         if state["status"] != "ready":
-            raise InstallerError("Completa/reanuda primero la instalación actual del Panel.")
+            raise InstallerError("Complete/resume the current Panel installation first.")
         release = self.choose_release("panel", "auto")
         if release["tag_name"] == state["version"]:
-            self.ui.say("Ya tienes esa versión.", "ok")
+            self.ui.say("This version is already installed.", "ok")
             return
         if version_key(release["tag_name"]) < version_key(state["version"]):
-            raise InstallerError("No se permiten downgrades del Panel; restaura un backup de esa versión.")
+            raise InstallerError("Panel downgrades are not allowed. Restore a backup from that version.")
         previous = state["version"]
         self.ui.card("Panel update plan", [
             self.ui.tr("Update: {current} → {target}").format(current=previous, target=release["tag_name"]),
             "A verified backup is created before any code or database change.",
             "The Panel is unavailable while the new migrations run.",
             self.ui.tr("If anything fails, you can roll back to {version}.").format(version=previous)])
-        self.ui.confirm("ACTUALIZAR PANEL")
+        self.ui.confirm("UPDATE PANEL")
         try:
             if state.get("method") == "standalone":
                 self.native(state).update(release)
@@ -385,26 +385,26 @@ class PanelMixin:
 
     def update_docker_panel(self, state, release):
         previous = state["version"]
-        # Descargar antes de interrumpir el Panel; copia antes de modificar el esquema.
+        # Download before stopping the Panel; back up before changing the schema.
         image = self.pin_image("ghcr.io/pterodactyl/panel:" + release["tag_name"])
         backup = self.backup_panel()
-        self.dc("stop", "panel", label="Deteniendo Panel para actualizar")
+        self.dc("stop", "panel", label="Stopping the Panel for its update")
         state.update(version=release["tag_name"], panel_image=image, status="updating", recovery_backup=str(backup),
                      previous_version=previous)
         self.save_panel(state)
         try:
             self.prepare_mysql_client(state)
             self.dc("run", "--rm", "-T", "panel", "php", "artisan", "migrate", "--seed", "--force", "--no-interaction",
-                    label="Aplicando migraciones de la versión nueva")
-            self.dc("up", "-d", "--wait", "--wait-timeout", "360", "panel", label="Verificando nuevo Panel")
+                    label="Applying the new release's migrations")
+            self.dc("up", "-d", "--wait", "--wait-timeout", "360", "panel", label="Checking the updated Panel")
         except BaseException:
-            self.ui.say(f"Actualización incompleta. Panel detenido; copia de recuperación: {backup}", "error")
-            # No arrancar código viejo con un esquema que puede haber cambiado.
+            self.ui.say(f"Update incomplete. Panel stopped. Recovery backup: {backup}", "error")
+            # Never start old code on a schema that may have changed.
             self.dc("stop", "panel", check=False)
             raise
         state["status"] = "ready"
         self.save_panel(state)
-        self.ui.say("Panel actualizado y comprobado por el healthcheck oficial.", "ok")
+        self.ui.say("Panel updated and checked with the official healthcheck.", "ok")
 
     def offer_rollback(self, previous, error):
         """After a failed update, offer the matching rollback; otherwise keep the Panel stopped."""
@@ -431,19 +431,19 @@ class PanelMixin:
         if state.get("method") == "standalone":
             return self.native(state).uninstall(confirmed)
         if not confirmed:
-            self.ui.confirm("DESINSTALAR PANEL")
-        purge = self.ui.yes("¿Borrar también base de datos y archivos del Panel? (antes se crea backup)")
+            self.ui.confirm("UNINSTALL PANEL")
+        purge = self.ui.yes("Also delete the Panel database and files? A backup is created first.")
         if purge:
-            self.ui.confirm("BORRAR PANEL")
+            self.ui.confirm("DELETE PANEL")
         backup = self.backup_panel()
-        self.dc("down", label="Eliminando solo contenedores y red de este Panel")
+        self.dc("down", label="Removing only this Panel's containers and network")
         if purge:
             if self.p.panel.is_symlink() or self.p.panel.parent != self.p.base:
-                raise InstallerError("Ruta de borrado no segura.")
+                raise InstallerError("Unsafe removal path.")
             shutil.rmtree(self.p.panel)
         else:
             state["status"] = "stopped"
             self.save_panel(state)
-        self.ui.say(f"Panel desinstalado. Backup: {backup}", "ok")
+        self.ui.say(f"Panel uninstalled. Backup: {backup}", "ok")
         if not purge:
-            self.ui.say("Datos conservados. «Instalar Panel» permite reactivarlo.")
+            self.ui.say("Data preserved. Install Panel can reactivate it.")

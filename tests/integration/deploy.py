@@ -23,7 +23,7 @@ class LabUI(UI):
             return
         return super().card(title, rows)
     def ask(self, label, default=None, validator=None, secret=False):
-        if label == 'Ruta absoluta al backup .tar.gz' and getattr(self, 'restore_archive', None):
+        if label == "Absolute path to the .tar.gz backup" and getattr(self, 'restore_archive', None):
             return str(self.restore_archive)
         if default is not None and (not validator or validator(str(default))):
             return str(default)

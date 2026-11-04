@@ -86,7 +86,7 @@ class SimulationTests(unittest.TestCase):
                                     self.assertEqual(state["tls"], access == "domain")
                                     self.assertEqual(state["game_database"]["mode"], mode)
                                     self.assertEqual(simulation.inventory()["credentials"], mode != "later")
-                                    self.assertIn(("Contraseña SMTP", True), ui.prompts)
+                                    self.assertIn(("SMTP password", True), ui.prompts)
                                     self.assertNotIn(simulation.admin_password, json.dumps(state))
 
     def test_every_menu_action_has_a_simulated_path_and_lifecycle(self):

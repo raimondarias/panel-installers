@@ -19,7 +19,7 @@ from .common import Cancelled, InstallerError, atomic_write, valid_version, vers
 class HostMixin:
     def check_host(self, wings=False):
         if os.geteuid() != 0:
-            raise InstallerError("Ejecuta con sudo o como root.")
+            raise InstallerError("Run with sudo or as root.")
         release = {}
         for line in (self.p.root / "etc/os-release").read_text().splitlines():
             if "=" in line:
@@ -27,22 +27,22 @@ class HostMixin:
                 release[key] = value.strip('"')
         supported = {"ubuntu": ("22.04", "24.04", "26.04"), "debian": ("12", "13")}
         if release.get("VERSION_ID") not in supported.get(release.get("ID"), ()):
-            raise InstallerError("Sistemas admitidos: Ubuntu 22.04/24.04/26.04 y Debian 12/13.")
+            raise InstallerError("Supported systems: Ubuntu 22.04/24.04/26.04 and Debian 12/13.")
         if platform.machine() not in ("x86_64", "aarch64"):
-            raise InstallerError("Arquitectura admitida: amd64 o arm64.")
+            raise InstallerError("Supported architecture: amd64 or arm64.")
         if not (self.p.root / "run/systemd/system").is_dir():
-            raise InstallerError("Se necesita un VPS/servidor con systemd como sistema de inicio.")
+            raise InstallerError("A server/VPS running systemd is required.")
         if shutil.disk_usage(self.p.root).free < 4 * 1024**3:
-            raise InstallerError("Se necesitan al menos 4 GiB libres para las imágenes y la instalación.")
+            raise InstallerError("At least 4 GiB of free space is required for images and installation.")
         meminfo = self.p.root / "proc/meminfo"
         if meminfo.exists():
             match = re.search(r"MemTotal:\s+(\d+)", meminfo.read_text())
             if match and int(match[1]) < 2 * 1024**2:
-                self.ui.say("Se recomiendan al menos 2 GiB de RAM, más la memoria de tus juegos.", "warn")
+                self.ui.say("At least 2 GiB RAM is recommended, plus memory for your games.", "warn")
         if wings:
             _, virt = self.run.run(["systemd-detect-virt"], check=False)
             if virt.strip() in ("openvz", "lxc", "lxc-libvirt", "docker", "podman"):
-                raise InstallerError(f"Wings requiere Docker en un host compatible; virtualización: {virt.strip()}.")
+                raise InstallerError(f"Wings requires Docker on a compatible host; virtualization: {virt.strip()}.")
         return release
 
     def docker(self):
@@ -50,29 +50,29 @@ class HostMixin:
         installed = bool(shutil.which("docker"))
         has_compose = installed and self.run.run(["docker", "compose", "version"], check=False)[0] == 0
         if not has_compose:
-            self.ui.say("Se instalará Docker Engine/Compose desde el repositorio oficial de Docker.")
-            self.run.run(["apt-get", "update"], label="Actualizando índices APT")
-            self.run.run(["apt-get", "install", "-y", "ca-certificates", "curl"], label="Dependencias de Docker")
+            self.ui.say("Docker Engine/Compose will be installed from Docker's official repository.")
+            self.run.run(["apt-get", "update"], label="Updating APT indexes")
+            self.run.run(["apt-get", "install", "-y", "ca-certificates", "curl"], label="Docker prerequisites")
             distro = release["ID"]
             key = self.p.root / "etc/apt/keyrings/docker.asc"
             key.parent.mkdir(parents=True, exist_ok=True, mode=0o755)
             data = self.fetch(f"https://download.docker.com/linux/{distro}/gpg").decode("ascii")
             if "BEGIN PGP PUBLIC KEY BLOCK" not in data:
-                raise InstallerError("Clave del repositorio Docker no válida.")
+                raise InstallerError("Invalid Docker repository signing key.")
             atomic_write(key, data, 0o644)
             arch = "amd64" if platform.machine() == "x86_64" else "arm64"
             codename = release.get("VERSION_CODENAME", "")
             if not re.fullmatch(r"[a-z]+", codename):
-                raise InstallerError("No se pudo determinar el codename de APT.")
+                raise InstallerError("Unable to detect the APT distribution codename.")
             source = (f"deb [arch={arch} signed-by={key}] https://download.docker.com/linux/{distro} "
                       f"{codename} stable\n")
             atomic_write(self.p.root / "etc/apt/sources.list.d/ptero-docker.list", source, 0o644)
-            self.run.run(["apt-get", "update"], label="Consultando repositorio Docker")
+            self.run.run(["apt-get", "update"], label="Checking the Docker repository")
             packages = ["docker-compose-plugin"] if installed else [
                 "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"]
-            self.run.run(["apt-get", "install", "-y", *packages], label="Instalando Docker y Compose")
-        self.run.run(["systemctl", "enable", "--now", "docker"], label="Iniciando Docker")
-        self.run.run(["docker", "info"], label="Verificando Docker")
+            self.run.run(["apt-get", "install", "-y", *packages], label="Installing Docker and Compose")
+        self.run.run(["systemctl", "enable", "--now", "docker"], label="Starting Docker")
+        self.run.run(["docker", "info"], label="Checking Docker")
 
     def fetch(self, url, limit=8 * 1024 * 1024):
         headers = {"User-Agent": "ptero-installer/" + __version__, "Accept": "application/json"}
@@ -86,10 +86,10 @@ class HostMixin:
             with urllib.request.urlopen(request, timeout=45) as response:
                 result = response.read(limit + 1)
             if len(result) > limit:
-                raise InstallerError("Respuesta remota demasiado grande.")
+                raise InstallerError("Remote response is too large.")
             return result
         except (urllib.error.URLError, TimeoutError) as exc:
-            raise InstallerError(f"No se pudo descargar {url}: {exc}") from exc
+            raise InstallerError(f"Unable to download {url}: {exc}") from exc
 
     def release(self, component, version):
         base = f"https://api.github.com/repos/pterodactyl/{component}/releases"
@@ -100,24 +100,24 @@ class HostMixin:
                           and valid_version(item["tag_name"], component)
                           and (component != "wings" or not item["prerelease"])]
             if not candidates:
-                raise InstallerError(f"No hay releases oficiales compatibles para {component}.")
+                raise InstallerError(f"No compatible official releases found for {component}.")
             release = max(candidates, key=lambda item: version_key(item["tag_name"]))
         else:
             if not valid_version(version, component):
-                raise InstallerError("Versión no válida o de otra rama principal.")
+                raise InstallerError("Invalid version or unsupported major release.")
             with self.ui.busy("Checking official releases"):
                 release = json.loads(self.fetch(base + "/tags/" + version))
         if release.get("draft") or not valid_version(release.get("tag_name", ""), component):
-            raise InstallerError("GitHub no devolvió una release compatible.")
+            raise InstallerError("GitHub did not return a compatible release.")
         return release
 
     def choose_release(self, component, default):
-        version = self.ui.ask(f"Versión de {component} (auto busca la más reciente compatible)", default,
+        version = self.ui.ask(f"{component} version (auto finds the latest compatible release)", default,
                               lambda x: x == "auto" or valid_version(x, component))
         release = self.release(component, version)
-        self.ui.say(f"Versión elegida: {release['tag_name']}")
-        if release["prerelease"] and not self.ui.yes("Es una versión de pruebas. ¿Continuar?"):
-            raise Cancelled("Instalación beta cancelada.")
+        self.ui.say(f"Selected release: {release['tag_name']}")
+        if release["prerelease"] and not self.ui.yes("This is a prerelease. Continue?"):
+            raise Cancelled("Beta installation cancelled.")
         return release
 
     def pin_image(self, ref):
@@ -125,7 +125,7 @@ class HostMixin:
         _, text = self.run.run(["docker", "image", "inspect", "--format", "{{json .RepoDigests}}", ref])
         digests = json.loads(text)
         if not digests or not re.fullmatch(r"[a-z0-9./_-]+@sha256:[0-9a-f]{64}", digests[0]):
-            raise InstallerError("La imagen descargada no tiene un digest verificable.")
+            raise InstallerError("The downloaded image does not have a verifiable digest.")
         return digests[0]
 
     def port_free(self, address, port):
@@ -133,7 +133,7 @@ class HostMixin:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.bind((address, port))
         except OSError as exc:
-            raise InstallerError(f"Puerto {address}:{port} ocupado o no disponible.") from exc
+            raise InstallerError(f"Port {address}:{port} is occupied or unavailable.") from exc
 
     @staticmethod
     def valid_port(value):

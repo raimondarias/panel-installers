@@ -55,7 +55,7 @@ class Installer(HostMixin, PanelMixin, WingsMixin, MaintenanceMixin):
     def load(self, path):
         state = read_json(path)
         if not isinstance(state, dict) or state.get("schema") != SCHEMA or state.get("owner") != PROJECT:
-            raise InstallerError("La instalación o copia no pertenece a este instalador.")
+            raise InstallerError("This installation or backup does not belong to this installer.")
         if Path(path) == self.p.wings_state and self.p.config.is_file():
             text = self.p.config.read_text()
             if text.lstrip().startswith("{"):

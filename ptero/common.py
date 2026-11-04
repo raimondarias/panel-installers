@@ -29,44 +29,44 @@ class Cancelled(InstallerError):
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        raise InstallerError("La API redirige la petición. Introduce la URL final del Panel.")
+        raise InstallerError("The API redirected the request. Enter the Panel's final URL.")
 
 
 def node_configuration(payload, url):
-    """Mismos campos remotos permitidos por Wings PanelConfiguration, sin indirection."""
+    """Only the remote fields Wings PanelConfiguration accepts, without indirection."""
     try:
         if not isinstance(payload, dict):
-            raise ValueError("objeto esperado")
+            raise ValueError("object expected")
         uuid.UUID(payload["uuid"])
         for field in ("token", "token_id"):
             value = payload[field]
             if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", value):
-                raise ValueError("token no válido o con indirection")
+                raise ValueError("invalid token or indirection")
         api = payload["api"]
         port = api["port"]
         sftp = payload["system"]["sftp"]["bind_port"]
         if any(type(value) is not int or not 1 <= value <= 65535 for value in (port, sftp)):
-            raise ValueError("puerto no válido")
+            raise ValueError("invalid port")
         host = api.get("host", "0.0.0.0")
         if not valid_host(host):
-            raise ValueError("host de escucha no válido")
+            raise ValueError("invalid listen host")
         ssl = api["ssl"]
         if type(ssl["enabled"]) is not bool:
-            raise ValueError("ssl.enabled debe ser booleano")
+            raise ValueError("ssl.enabled must be a boolean")
         for field in ("cert", "key"):
             if not isinstance(ssl.get(field, ""), str):
-                raise ValueError("ruta SSL no válida")
+                raise ValueError("invalid SSL path")
             if ssl["enabled"] and not Path(ssl.get(field, "")).is_absolute():
-                raise ValueError("SSL necesita rutas absolutas de certificado y clave")
+                raise ValueError("SSL needs absolute certificate and key paths")
         upload = api.get("upload_limit", 100)
         if type(upload) is not int or upload < 0:
-            raise ValueError("upload_limit no válido")
+            raise ValueError("invalid upload_limit")
         return {"debug": False, "uuid": payload["uuid"], "token_id": payload["token_id"],
                 "token": payload["token"], "api": {"host": host, "port": port,
                 "ssl": {key: ssl.get(key, "") for key in ("enabled", "cert", "key")}, "upload_limit": upload},
                 "system": {"sftp": {"bind_port": sftp}}, "remote": url}
     except (KeyError, TypeError, ValueError, AttributeError) as exc:
-        raise InstallerError("La API no devolvió una configuración de nodo válida.") from exc
+        raise InstallerError("The API did not return a valid node configuration.") from exc
 
 
 def file_sha256(path):
@@ -102,7 +102,7 @@ def atomic_write(path, content, mode=0o600):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if path.is_symlink():
-        raise InstallerError(f"No se escribe sobre un enlace simbólico: {path}")
+        raise InstallerError(f"Refusing to write through a symbolic link: {path}")
     fd, name = tempfile.mkstemp(prefix=".tmp-", dir=path.parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as stream:
@@ -123,7 +123,7 @@ def read_json(path):
     try:
         return json.loads(Path(path).read_text())
     except (OSError, ValueError) as exc:
-        raise InstallerError(f"No se puede leer JSON: {path}: {exc}") from exc
+        raise InstallerError(f"Unable to read JSON: {path}: {exc}") from exc
 
 
 def valid_email(value):
@@ -173,7 +173,7 @@ def version_key(tag):
 
 
 def secure_extract(archive, destination, preserve_ownership=True):
-    """Extrae archivos y symlinks internos; rechaza rutas externas/dispositivos."""
+    """Extract files and internal symlinks; reject external paths and devices."""
     destination = Path(destination).resolve()
     with tarfile.open(archive, "r:gz") as tar:
         members = [member for member in tar.getmembers() if not (member.isdir() and Path(member.name) == Path("."))]
@@ -187,18 +187,18 @@ def secure_extract(archive, destination, preserve_ownership=True):
                     or not target.is_relative_to(destination)
                     or not (member.isfile() or member.isdir() or member.issym() or member.islnk()) or member.name in seen
                     or any(parent in links for parent in name.parents)):
-                raise InstallerError(f"Backup con entrada no permitida: {member.name}")
+                raise InstallerError(f"Backup contains a forbidden entry: {member.name}")
             if member.issym():
                 link = Path(member.linkname)
                 if link.is_absolute() or not (target.parent / link).resolve().is_relative_to(destination):
-                    raise InstallerError(f"Backup con enlace externo: {member.name}")
+                    raise InstallerError(f"Backup contains an external link: {member.name}")
             if member.islnk():
                 source = previous.get(member.linkname)
                 if source is None or not (source.isfile() or source.islnk()):
-                    raise InstallerError("Backup con hardlink sin archivo original anterior.")
+                    raise InstallerError("Backup hardlink does not reference an earlier regular file.")
             seen.add(member.name)
             previous[member.name] = member
-        # Los links se crean al final: nunca escribir a través de un link del tar.
+        # Links are created last: never write through a link taken from the archive.
         for member in members:
             target = destination / member.name
             if member.isdir():
@@ -218,11 +218,11 @@ def secure_extract(archive, destination, preserve_ownership=True):
                 try:
                     internal = target.resolve().is_relative_to(destination)
                 except RuntimeError as exc:
-                    raise InstallerError("Backup con ciclo de enlaces.") from exc
+                    raise InstallerError("Backup contains a symbolic link cycle.") from exc
                 if not internal:
-                    raise InstallerError("Backup con enlace que escapa del destino.")
+                    raise InstallerError("Backup contains a link outside the target directory.")
             else:
                 target.chmod(member.mode & 0o777 & ~0o002)
                 if preserve_ownership and os.geteuid() == 0:
-                    # .env debe seguir siendo legible para nginx dentro del contenedor.
+                    # .env must stay readable by nginx inside the container.
                     os.chown(target, member.uid, member.gid)

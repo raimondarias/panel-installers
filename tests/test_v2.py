@@ -75,7 +75,7 @@ class LocalizationTests(BaseTest):
             self.assertIn(recommended, ui.tr("Standalone (Recommended)"))
             with patch("builtins.input", return_value=confirm):
                 ui.confirm("INSTALL PANEL")
-            self.assertNotIn("{", ui.tr("Puerto 0.0.0.0:80 ocupado o no disponible."))
+            self.assertNotIn("{", ui.tr("Port 0.0.0.0:80 is occupied or unavailable."))
 
     def test_brazilian_portuguese_menu(self):
         self.installer.ui = app.UI(False, "pt-BR")

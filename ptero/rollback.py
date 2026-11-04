@@ -47,7 +47,7 @@ def inspect(installer, state):
     except (KeyError, OSError, ValueError, tarfile.TarError) as exc:
         raise InstallerError("The recovery backup does not contain a readable Panel state.") from exc
     if not isinstance(saved, dict) or saved.get("owner") != PROJECT or saved.get("schema") != SCHEMA:
-        raise InstallerError("La instalación o copia no pertenece a este instalador.")
+        raise InstallerError("This installation or backup does not belong to this installer.")
     previous = saved.get("version", "")
     if not isinstance(previous, str) or not valid_version(previous, "panel"):
         raise InstallerError("The recovery backup does not record a valid Panel version.")
@@ -137,7 +137,7 @@ def database_reset(state):
 
 def docker_rollback(i, state, work, saved):
     if not (work / "data/var/.env").is_file():
-        raise InstallerError("La copia no contiene SQL y claves originales del Panel.")
+        raise InstallerError("The backup is missing SQL or the Panel's original keys.")
     if application_keys(work / "data/var/.env") != application_keys(i.p.data / "var/.env"):
         raise InstallerError("The recovery backup has different application keys; use Restore Panel from backup instead.")
     i.run.secrets.add(state["db_password"])
@@ -147,7 +147,7 @@ def docker_rollback(i, state, work, saved):
         if not source.is_dir():
             continue
         if target.is_symlink():
-            raise InstallerError("Ruta de borrado no segura.")
+            raise InstallerError("Unsafe removal path.")
         # Swap by rename so an interruption never leaves the folder missing.
         aside = target.with_name("." + folder + "-replaced-" + i.stamp())
         if target.exists():
@@ -159,7 +159,7 @@ def docker_rollback(i, state, work, saved):
                 os.replace(aside, target)
             raise
         shutil.rmtree(aside, ignore_errors=True)
-    i.dc("up", "-d", "--wait", "--wait-timeout", "240", "database", "cache", label="Preparando base de datos y Redis")
+    i.dc("up", "-d", "--wait", "--wait-timeout", "240", "database", "cache", label="Preparing the database and Redis")
     i.dc("exec", "-T", "database", "sh", "-c", database_reset(state), label="Clearing the updated database schema")
     with (work / "database.sql").open("rb") as stream:
         i.dc("exec", "-T", "database", "sh", "-c", i.database_command(state, dump=False),

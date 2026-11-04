@@ -656,3 +656,146 @@ Panel update incomplete. Choose Resume installation (32) to continue or roll bac
 An operation was interrupted. Choose Resume installation (32) to continue.|||Una operación se interrumpió. Elige Reanudar instalación (32) para continuar.|||Uma operação foi interrompida. Escolha Retomar instalação (32) para continuar.
 A component needs manual review. Choose Status and diagnostics (14).|||Un componente requiere revisión manual. Elige Estado y diagnóstico (14).|||Um componente precisa de revisão manual. Escolha Status e diagnóstico (14).
 Duration: {value}|||Duración: {value}|||Duração: {value}
+# Former Spanish-source messages, now keyed by their English text
+The API redirected the request. Enter the Panel's final URL.|||La API redirige la petición. Introduce la URL final del Panel.|||A API redirecionou a solicitação. Informe a URL final do Painel.
+Refusing to write through a symbolic link: {value1}|||No se escribe sobre un enlace simbólico: {value1}|||Não é possível gravar por um link simbólico: {value1}
+Starting Docker|||Iniciando Docker|||Iniciando o Docker
+Checking Docker|||Verificando Docker|||Verificando o Docker
+{value1} version (auto finds the latest compatible release)|||Versión de {value1} (auto busca la más reciente compatible)|||Versão de {value1} (auto busca a versão compatível mais recente)
+Selected release: {value1}|||Versión elegida: {value1}|||Versão selecionada: {value1}
+Preparing the database and Redis|||Preparando base de datos y Redis|||Preparando o banco de dados e o Redis
+Keeping the Panel offline during migrations|||Manteniendo el Panel detenido durante las migraciones|||Mantendo o Painel offline durante as migrações
+Running migrations and installing official eggs|||Migraciones y eggs oficiales|||Executando migrações e instalando os eggs oficiais
+Starting the Panel, queue worker and scheduler|||Iniciando Panel, colas y scheduler|||Iniciando o Painel, a fila e o agendador
+Panel is available: {value1}|||Panel disponible: {value1}|||Painel disponível: {value1}
+Keep an off-server copy of data/var/.env (APP_KEY and HASHIDS_SALT).|||Guarda fuera del servidor una copia de data/var/.env (APP_KEY y HASHIDS_SALT).|||Guarde fora do servidor uma cópia de data/var/.env (APP_KEY e HASHIDS_SALT).
+INSTALL WINGS|||INSTALAR WINGS|||INSTALAR WINGS
+Wings binary installed and verified. Link the node to continue.|||Binario Wings instalado y verificado. Falta vincular el nodo.|||Binário do Wings instalado e verificado. Vincule o node para continuar.
+Link Wings to the Panel now?|||¿Vincular Wings al Panel ahora?|||Vincular o Wings ao Painel agora?
+In the Panel: Admin → Locations → create a location; Nodes → create a node → Configuration.|||En el Panel: Admin → Locations → crea ubicación; Nodes → crea nodo → Configuration.|||No Painel: Admin → Locations → crie uma localização; Nodes → crie um node → Configuration.
+Set the domain, API/SFTP ports, memory, disk and allocations using the node's IP.|||Configura dominio, puertos API/SFTP, memoria, disco y allocations con la IP del nodo.|||Defina domínio, portas da API/SFTP, memória, disco e allocations com o IP do node.
+Use the Auto-Deploy token. Your input will be hidden.|||El token solicitado es el de Auto-Deploy; se introducirá oculto.|||Use o token Auto-Deploy. A digitação ficará oculta.
+Numeric node ID|||ID numérico del nodo|||ID numérico do node
+Auto-Deploy token|||Token Auto-Deploy|||Token Auto-Deploy
+CONFIGURE WINGS|||CONFIGURAR WINGS|||CONFIGURAR WINGS
+If the Panel uses HTTPS, enable SSL on the node and issue its certificate before starting.|||Si el Panel usa HTTPS, activa SSL en el nodo y emite su certificado antes de iniciar.|||Se o Painel usa HTTPS, ative SSL no node e emita o certificado antes de iniciar.
+Issue an HTTPS certificate for Wings now?|||¿Emitir certificado SSL para Wings ahora?|||Emitir um certificado HTTPS para o Wings agora?
+Enabling Wings|||Activando Wings|||Ativando o Wings
+Starting Wings with its current configuration|||Iniciando Wings con la configuración actual|||Iniciando o Wings com a configuração atual
+Wings is active. Check that the node is connected in the Panel.|||Wings está activo. Comprueba que el nodo aparece conectado en el Panel.|||Wings ativo. Verifique se o node está conectado no Painel.
+Wings domain, e.g. node.example.com|||Dominio de Wings, ej. node.ejemplo.com|||Domínio do Wings, ex.: node.exemplo.com
+Enable SSL in the node's Configuration and use these paths:|||En Configuration del nodo activa SSL y usa estas rutas:|||Ative SSL na Configuration do node e use estes caminhos:
+The domain must point here and allow HTTP challenges on port 80.|||El dominio debe apuntar a este host y permitir desafíos HTTP en el puerto 80.|||O domínio deve apontar para este host e permitir desafios HTTP na porta 80.
+Updating APT|||Actualizando APT|||Atualizando o APT
+Installing Certbot|||Instalando Certbot|||Instalando o Certbot
+Certificate issued. Synchronize Wings again if you changed SSL in the Panel.|||Certificado emitido. Vuelve a sincronizar la configuración si cambiaste SSL en el Panel.|||Certificado emitido. Sincronize o Wings novamente se alterou o SSL no Painel.
+Wings configuration saved: {value1}|||Configuración de Wings guardada: {value1}|||Configuração do Wings salva: {value1}
+RESTORE PANEL|||RESTAURAR PANEL|||RESTAURAR PAINEL
+Panel restored. Keep the original domain/IP or update DNS and configuration.|||Panel restaurado. Mantén el dominio/IP original o adapta DNS y configuración.|||Painel restaurado. Mantenha o domínio/IP original ou atualize o DNS e a configuração.
+UPDATE PANEL|||ACTUALIZAR PANEL|||ATUALIZAR PAINEL
+Stopping the Panel for its update|||Deteniendo Panel para actualizar|||Parando o Painel para atualizar
+Panel updated and checked with the official healthcheck.|||Panel actualizado y comprobado por el healthcheck oficial.|||Painel atualizado e verificado pelo healthcheck oficial.
+Wings updated. Game containers are preserved.|||Wings actualizado; los contenedores de juegos se conservan.|||Wings atualizado. Os contêineres dos jogos foram preservados.
+Also delete the Panel database and files? A backup is created first.|||¿Borrar también base de datos y archivos del Panel? (antes se crea backup)|||Excluir também o banco e os arquivos do Painel? Um backup será criado antes.
+Removing only this Panel's containers and network|||Eliminando solo contenedores y red de este Panel|||Removendo apenas os contêineres e a rede deste Painel
+Panel uninstalled. Backup: {value1}|||Panel desinstalado. Backup: {value1}|||Painel desinstalado. Backup: {value1}
+Game files and containers will remain. Stop them from the Panel if needed.|||Los juegos y sus contenedores seguirán existiendo. Apágalos desde el Panel si lo necesitas.|||Os arquivos e contêineres dos jogos serão mantidos. Desligue-os pelo Painel se necessário.
+Stopping and disabling Wings|||Deteniendo y deshabilitando Wings|||Parando e desativando o Wings
+Wings removed. Game files, Docker and certificates are preserved.|||Wings desinstalado. Archivos de juegos, Docker y certificados conservados.|||Wings removido. Arquivos dos jogos, Docker e certificados foram preservados.
+UNINSTALL PANEL AND WINGS|||DESINSTALAR PANEL Y WINGS|||DESINSTALAR PAINEL E WINGS
+Private log: {value1}|||Log privado: {value1}|||Log privado: {value1}
+RESTART SERVICES|||REINICIAR SERVICIOS|||REINICIAR SERVIÇOS
+CHANGE SMTP|||CAMBIAR SMTP|||ALTERAR SMTP
+Applying SMTP settings|||Aplicando SMTP|||Aplicando as configurações SMTP
+Allow these ports in your provider and host firewalls:|||Permite en el firewall del proveedor y del host:|||Libere estas portas nos firewalls do provedor e do host:
+Panel: TCP 80/443. Wings: TCP 8080 (or your node's API port) and TCP 2022 for SFTP.|||Panel: TCP 80/443. Wings: TCP 8080 (o el puerto del nodo) y TCP 2022 para SFTP.|||Painel: TCP 80/443. Wings: TCP 8080 (ou a porta da API do node) e TCP 2022 para SFTP.
+Games: their TCP/UDP allocations. Keep your SSH administration port open.|||Juegos: sus allocations TCP/UDP. SSH: conserva tu puerto de administración.|||Jogos: suas allocations TCP/UDP. Mantenha a porta de administração SSH aberta.
+Docker publishes ports using its own rules; restrict them with DOCKER-USER/nftables.|||Docker publica puertos mediante sus propias reglas; usa DOCKER-USER/nftables para restringirlos.|||O Docker publica portas com regras próprias; restrinja-as com DOCKER-USER/nftables.
+Firewalls and their rules are not changed automatically.|||No se activan firewalls ni se cambian reglas automáticamente.|||Os firewalls e suas regras não são alterados automaticamente.
+The API did not return a valid node configuration.|||La API no devolvió una configuración de nodo válida.|||A API não retornou uma configuração válida do node.
+This installation or backup does not belong to this installer.|||La instalación o copia no pertenece a este instalador.|||Esta instalação ou backup não pertence a este instalador.
+Supported systems: Ubuntu 22.04/24.04/26.04 and Debian 12/13.|||Sistemas admitidos: Ubuntu 22.04/24.04/26.04 y Debian 12/13.|||Sistemas compatíveis: Ubuntu 22.04/24.04/26.04 e Debian 12/13.
+Supported architecture: amd64 or arm64.|||Arquitectura admitida: amd64 o arm64.|||Arquitetura compatível: amd64 ou arm64.
+A server/VPS running systemd is required.|||Se necesita un VPS/servidor con systemd como sistema de inicio.|||É necessário um servidor/VPS com systemd.
+At least 4 GiB of free space is required for images and installation.|||Se necesitan al menos 4 GiB libres para las imágenes y la instalación.|||São necessários pelo menos 4 GiB livres para imagens e instalação.
+Docker Engine/Compose will be installed from Docker's official repository.|||Se instalará Docker Engine/Compose desde el repositorio oficial de Docker.|||O Docker Engine/Compose será instalado pelo repositório oficial do Docker.
+Docker prerequisites|||Dependencias de Docker|||Pré-requisitos do Docker
+Checking the Docker repository|||Consultando repositorio Docker|||Consultando o repositório do Docker
+Installing Docker and Compose|||Instalando Docker y Compose|||Instalando o Docker e o Compose
+GitHub did not return a compatible release.|||GitHub no devolvió una release compatible.|||O GitHub não retornou uma versão compatível.
+The downloaded image does not have a verifiable digest.|||La imagen descargada no tiene un digest verificable.|||A imagem baixada não tem um digest verificável.
+RESUME PANEL|||REANUDAR PANEL|||RETOMAR PAINEL
+GitHub does not publish a SHA-256 for this binary. Download cancelled.|||GitHub no publica un SHA-256 para este binario; se cancela la descarga.|||O GitHub não publica um SHA-256 para este binário. Download cancelado.
+The Wings download does not match the official repository.|||La descarga de Wings no corresponde al repositorio oficial.|||O download do Wings não corresponde ao repositório oficial.
+Checking the Wings executable|||Comprobando ejecutable Wings|||Verificando o executável do Wings
+Interrupted Wings installation: repairing its recorded version.|||Instalación de Wings interrumpida: se reparará la versión registrada.|||Instalação do Wings interrompida: reparando a versão registrada.
+Wings remains stopped until you complete Configure Wings.|||Wings queda detenido hasta completar «Configurar Wings».|||O Wings ficará parado até concluir Configurar Wings.
+A fresh configuration will be generated. Reapply manual host settings from the backup if needed.|||Se genera una configuración nueva. Reaplica tus ajustes manuales desde la copia si los necesitas.|||Uma nova configuração será gerada. Reaplique os ajustes manuais do host pelo backup se necessário.
+Checking initial Wings stability|||Comprobando estabilidad inicial de Wings|||Verificando a estabilidade inicial do Wings
+The Panel will pause briefly during certificate issuance/renewal to release port 80.|||El Panel se pausará brevemente al emitir/renovar este certificado para liberar el puerto 80.|||O Painel será pausado brevemente ao emitir/renovar o certificado para liberar a porta 80.
+Issuing the Wings certificate|||Emitiendo certificado Wings|||Emitindo o certificado do Wings
+Backup created: {value1} (contains secrets; keep an off-server copy)|||Backup creado: {value1} (contiene secretos; guárdalo fuera del servidor)|||Backup criado: {value1} (contém segredos; guarde uma cópia fora do servidor)
+Absolute path to the .tar.gz backup|||Ruta absoluta al backup .tar.gz|||Caminho absoluto do backup .tar.gz
+The backup's .sha256 file is missing.|||Falta el archivo .sha256 del backup.|||O arquivo .sha256 do backup está ausente.
+Backup checksum does not match.|||El checksum del backup no coincide.|||O checksum do backup não corresponde.
+The target must be empty. Back up and uninstall/purge the current Panel first.|||El destino debe estar vacío. Desinstala/purga el Panel actual después de respaldarlo.|||O destino deve estar vazio. Faça backup e desinstale/remova os dados do Painel atual antes.
+Downloading the backup's original images|||Descargando imágenes originales de la copia|||Baixando as imagens originais do backup
+Starting the restored Panel|||Arrancando Panel restaurado|||Iniciando o Painel restaurado
+Complete/resume the current Panel installation first.|||Completa/reanuda primero la instalación actual del Panel.|||Conclua/retome a instalação atual do Painel primeiro.
+This version is already installed.|||Ya tienes esa versión.|||Esta versão já está instalada.
+Panel downgrades are not allowed. Restore a backup from that version.|||No se permiten downgrades del Panel; restaura un backup de esa versión.|||Downgrades do Painel não são permitidos. Restaure um backup daquela versão.
+Applying the new release's migrations|||Aplicando migraciones de la versión nueva|||Aplicando as migrações da nova versão
+Checking the updated Panel|||Verificando nuevo Panel|||Verificando o Painel atualizado
+Data preserved. Install Panel can reactivate it.|||Datos conservados. «Instalar Panel» permite reactivarlo.|||Dados preservados. Instalar Painel pode reativá-lo.
+Restarting the Panel|||Reiniciando Panel|||Reiniciando o Painel
+Backup contains a forbidden entry: {value1}|||Backup con entrada no permitida: {value1}|||O backup contém uma entrada não permitida: {value1}
+At least 2 GiB RAM is recommended, plus memory for your games.|||Se recomiendan al menos 2 GiB de RAM, más la memoria de tus juegos.|||São recomendados pelo menos 2 GiB de RAM, além da memória dos jogos.
+Wings requires Docker on a compatible host; virtualization: {value1}.|||Wings requiere Docker en un host compatible; virtualización: {value1}.|||O Wings exige Docker em um host compatível; virtualização: {value1}.
+Invalid Docker repository signing key.|||Clave del repositorio Docker no válida.|||Chave de assinatura inválida do repositório do Docker.
+Unable to detect the APT distribution codename.|||No se pudo determinar el codename de APT.|||Não foi possível detectar o codinome da distribuição APT.
+Remote response is too large.|||Respuesta remota demasiado grande.|||A resposta remota é grande demais.
+No compatible official releases found for {value1}.|||No hay releases oficiales compatibles para {value1}.|||Nenhuma versão oficial compatível encontrada para {value1}.
+Invalid version or unsupported major release.|||Versión no válida o de otra rama principal.|||Versão inválida ou versão principal incompatível.
+This is a prerelease. Continue?|||Es una versión de pruebas. ¿Continuar?|||Esta é uma versão de testes. Continuar?
+SMTP host|||Host SMTP|||Host SMTP
+SMTP port|||Puerto SMTP|||Porta SMTP
+SMTP username|||Usuario SMTP|||Usuário SMTP
+SMTP password|||Contraseña SMTP|||Senha SMTP
+SMTP encryption (tls/ssl/null)|||Cifrado SMTP (tls/ssl/null)|||Criptografia SMTP (tls/ssl/null)
+SQL restore incomplete. Keep the backup and retry in an empty target.|||Restauración SQL incompleta. Conserva el backup y repite la restauración en un destino vacío.|||Restauração SQL incompleta. Guarde o backup e tente novamente em um destino vazio.
+Panel already installed. Use update, restart or SMTP settings.|||El Panel ya está instalado. Usa actualizar, reiniciar o configurar SMTP.|||Painel já instalado. Use atualizar, reiniciar ou configurar SMTP.
+The target contains unregistered files. They will not be overwritten.|||El directorio de destino contiene archivos sin registro; no se sobrescriben.|||O destino contém arquivos não registrados. Eles não serão sobrescritos.
+Downloading and verifying Wings|||Descargando y verificando Wings|||Baixando e verificando o Wings
+Wings SHA-256 mismatch. The file will not be executed.|||El SHA-256 de Wings no coincide. No se ejecutará el archivo.|||O SHA-256 do Wings não corresponde. O arquivo não será executado.
+Wings is already managed ({value1}). Use configure or update.|||Wings ya está gestionado ({value1}). Usa configurar o actualizar.|||O Wings já é gerenciado ({value1}). Use configurar ou atualizar.
+An unmanaged Wings installation exists. It will not be overwritten.|||Hay una instalación de Wings ajena a este script; no se sobrescribe.|||Existe uma instalação do Wings não gerenciada. Ela não será sobrescrita.
+Panel URL|||URL del Panel|||URL do Painel
+Fetching the node configuration|||Obteniendo configuración del nodo|||Obtendo a configuração do node
+Node configuration is too large.|||Configuración del nodo demasiado grande.|||A configuração do node é grande demais.
+Unable to fetch configuration. Check the Panel URL, node ID and Auto-Deploy token.|||No se pudo obtener la configuración. Comprueba URL, ID y token Auto-Deploy.|||Não foi possível obter a configuração. Verifique a URL do Painel, o ID do node e o token Auto-Deploy.
+Releasing port 80 for the node certificate|||Liberando puerto 80 para el certificado del nodo|||Liberando a porta 80 para o certificado do node
+This file is not a Panel backup.|||El archivo no es un backup de Panel.|||Este arquivo não é um backup do Painel.
+The backup is missing SQL or the Panel's original keys.|||La copia no contiene SQL y claves originales del Panel.|||O backup não contém o SQL ou as chaves originais do Painel.
+Restoring SQL with its original application keys|||Restaurando SQL con sus claves originales|||Restaurando o SQL com suas chaves originais
+Update incomplete. Panel stopped. Recovery backup: {value1}|||Actualización incompleta. Panel detenido; copia de recuperación: {value1}|||Atualização incompleta. Painel parado. Backup de recuperação: {value1}
+The Panel is not ready. Resume its installation/update first.|||El Panel no está listo; reanuda la instalación/actualización primero.|||O Painel não está pronto. Retome a instalação/atualização primeiro.
+Backup contains an external link: {value1}|||Backup con enlace externo: {value1}|||O backup contém um link externo: {value1}
+Backup hardlink does not reference an earlier regular file.|||Backup con hardlink sin archivo original anterior.|||O hardlink do backup não referencia um arquivo regular anterior.
+Backup contains a link outside the target directory.|||Backup con enlace que escapa del destino.|||O backup contém um link para fora do diretório de destino.
+Backup contains a symbolic link cycle.|||Backup con ciclo de enlaces.|||O backup contém um ciclo de links simbólicos.
+Pausing the Panel for a consistent backup|||Pausando Panel para una copia consistente|||Pausando o Painel para um backup consistente
+Exporting the database|||Exportando base de datos|||Exportando o banco de dados
+Pausing Redis to preserve queued jobs|||Pausando Redis para guardar las colas|||Pausando o Redis para preservar as tarefas da fila
+Compressing configuration, original keys and data|||Comprimiendo configuración, claves y datos|||Comprimindo a configuração, as chaves originais e os dados
+# Former Spanish-source messages, now keyed by their English text
+/etc/letsencrypt/live/{value1}/fullchain.pem\n/etc/letsencrypt/live/{value2}/privkey.pem|||/etc/letsencrypt/live/{value1}/fullchain.pem\n/etc/letsencrypt/live/{value2}/privkey.pem|||/etc/letsencrypt/live/{value1}/fullchain.pem\n/etc/letsencrypt/live/{value2}/privkey.pem
+Unable to read JSON: {value1}: {value2}|||No se puede leer JSON: {value1}: {value2}|||Não foi possível ler o JSON: {value1}: {value2}
+Existing managed installation: {value1}, {value2}.|||Instalación gestionada existente: {value1}, {value2}.|||Instalação gerenciada existente: {value1}, {value2}.
+Failed: {value1} (exit code {value2}).\n{value3}|||Falló {value1} (código {value2}).\n{value3}|||Falha: {value1} (código {value2}).\n{value3}
+Unable to download {value1}: {value2}|||No se pudo descargar {value1}: {value2}|||Não foi possível baixar {value1}: {value2}
+Port {value1}:{value2} is occupied or unavailable.|||Puerto {value1}:{value2} ocupado o no disponible.|||A porta {value1}:{value2} está ocupada ou indisponível.
+Unable to execute {value1}: {value2}|||No se pudo ejecutar {value1}: {value2}|||Não foi possível executar {value1}: {value2}
+The download exceeds its size limit.|||La descarga supera su límite de tamaño.|||O download excede o limite de tamanho.
+No IPv4 game database network was found.|||No se encontró ninguna red IPv4 para las bases de datos de juegos.|||Nenhuma rede IPv4 foi encontrada para os bancos de dados de jogos.
+The SQL configuration contains an invalid private network.|||La configuración SQL contiene una red privada no válida.|||A configuração SQL contém uma rede privada inválida.
+Native game SQL data is incomplete; recover this SQL instance outside the installer before continuing.|||Los datos del SQL nativo de juegos están incompletos; recupera esta instancia SQL fuera del instalador antes de continuar.|||Os dados do SQL nativo de jogos estão incompletos; recupere esta instância SQL fora do instalador antes de continuar.

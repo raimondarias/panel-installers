@@ -66,7 +66,7 @@ class RemoteUI(UI):
  def yes(self,label,default=False):return False
  def choice(self,label,options,default=0):return options[default][0]
  def ask(self,label,default=None,validator=None,secret=False):
-  values={'Dominio de Wings, ej. node.ejemplo.com':request.get('fqdn'),'Correo Let\'s Encrypt':request.get('email')}
+  values={'Wings domain, e.g. node.example.com':request.get('fqdn'),'Let\'s Encrypt email':request.get('email')}
   value=values.get(label,default)
   if value is None or (validator and not validator(value)):raise ValueError('Missing remote answer: '+label)
   return value
@@ -105,7 +105,7 @@ def setup_node(i):
     from .nodes import plan, create
     target = target_plan(i)
     data = plan(i)
-    email = i.ui.ask("Correo Let's Encrypt", i.panel_state()['email']) if data['scheme'] == 'https' and not data['behind_proxy'] else None
+    email = i.ui.ask("Let's Encrypt email", i.panel_state()['email']) if data['scheme'] == 'https' and not data['behind_proxy'] else None
     i.ui.confirm('INSTALL REMOTE NODE')
     i.run.run([*ssh(target), 'python3 --version'], label='Checking remote SSH and Python')
     result = create(i, data, link=False)

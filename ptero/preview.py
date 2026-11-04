@@ -102,11 +102,11 @@ class Simulation:
         method = self.ui.choice("Wings deployment", [
             ("standalone", "Standalone daemon (Recommended)", "A systemd service managing Docker game containers"),
             ("docker", "Docker container", "A Wings container with host networking and Docker socket access")])
-        self.ui.confirm("INSTALAR WINGS")
+        self.ui.confirm("INSTALL WINGS")
         self.ui.step(2, 3, "Deploying Wings")
         self.stages("Preparing dependencies", "Deploying Wings", "Checking simulated services")
         self.wings = {"method": method, "version": release["tag_name"], "status": "pending"}
-        if self.ui.yes("¿Vincular Wings al Panel ahora?", True):
+        if self.ui.yes("Link Wings to the Panel now?", True):
             self.link_wings()
 
     def link_wings(self):
@@ -125,16 +125,16 @@ class Simulation:
                 return
         url, node, _token = connection(self, self.panel["url"] if self.panel else None)
         self.stages("Fetching simulated node configuration")
-        if self.ui.yes("¿Emitir certificado SSL para Wings ahora?"):
+        if self.ui.yes("Issue an HTTPS certificate for Wings now?"):
             self.tls_wings()
         self.stages("Checking simulated services")
         self.wings.update(status="ready", panel_url=url, node=node)
 
     def tls_wings(self):
         from .core import valid_domain, valid_email
-        self.ui.ask("Dominio de Wings, ej. node.ejemplo.com", validator=valid_domain)
-        self.ui.ask("Correo Let's Encrypt", validator=valid_email)
-        self.ui.confirm("EMITIR SSL WINGS")
+        self.ui.ask("Wings domain, e.g. node.example.com", validator=valid_domain)
+        self.ui.ask("Let's Encrypt email", validator=valid_email)
+        self.ui.confirm("ISSUE WINGS SSL")
         self.stages("Simulating certificate issuance")
 
     def dispatch(self, action):
@@ -279,11 +279,11 @@ class TourUI:
                   "Administrator email": "admin@example.com", "Administrator username": "admin",
                   "Administrator password (12+ characters; empty generates one)": "Preview-only-password-123!",
                   "Confirm administrator password": "Preview-only-password-123!",
-                  "Host SMTP": "smtp.example.com", "Usuario SMTP": "admin@example.com",
-                  "Contraseña SMTP": "preview-smtp-password", "URL del Panel": "https://panel.example.com",
-                  "ID numérico del nodo": "1", "Token Auto-Deploy": "preview-token",
-                  "Dominio de Wings, ej. node.ejemplo.com": "node.example.com",
-                  "Correo Let's Encrypt": "admin@example.com",
+                  "SMTP host": "smtp.example.com", "SMTP username": "admin@example.com",
+                  "SMTP password": "preview-smtp-password", "Panel URL": "https://panel.example.com",
+                  "Numeric node ID": "1", "Auto-Deploy token": "preview-token",
+                  "Wings domain, e.g. node.example.com": "node.example.com",
+                  "Let's Encrypt email": "admin@example.com",
                   "Database host password (16+ characters; empty generates one)": "",
                   "Node hostname / IPv4": "node.example.com", "Allocation IPv4 address": "93.184.216.34",
                   "Backup encryption password (16+ characters)": "preview-backup-password-123!",

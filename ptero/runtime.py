@@ -30,11 +30,11 @@ class Runner:
     def redact(self, text):
         for secret in sorted(self.secrets, key=len, reverse=True):
             if secret:
-                text = text.replace(secret, "[OCULTO]")
+                text = text.replace(secret, "[REDACTED]")
         text = re.sub(r"(?i)((?:password|token(?:_id)?|app_key|hashids_salt)[\"']?\s*[:=]\s*)[^\s,]+",
-                      r"\1[OCULTO]", text)
-        text = re.sub(r"(?i)Bearer\s+\S+", "Bearer [OCULTO]", text)
-        text = re.sub(r"ptl[a-z]_[A-Za-z0-9_-]+", "[TOKEN OCULTO]", text)
+                      r"\1[REDACTED]", text)
+        text = re.sub(r"(?i)Bearer\s+\S+", "Bearer [REDACTED]", text)
+        text = re.sub(r"ptl[a-z]_[A-Za-z0-9_-]+", "[REDACTED TOKEN]", text)
         return text
 
     def rotate(self):
@@ -61,7 +61,7 @@ class Runner:
             check=True, timeout=1800, env=None, umask=0o077, cwd=None):
         args = [str(arg) for arg in args]
         self.record("$ " + " ".join(args))
-        # Archivos temporales evitan acumular dumps y salidas de apt en memoria.
+        # Temporary files avoid holding SQL dumps and apt output in memory.
         with tempfile.TemporaryFile() as captured, tempfile.TemporaryFile() as errors:
             with (self.ui.busy(label) if label and not interactive else contextlib.nullcontext()), (self.ui.suspend() if interactive else contextlib.nullcontext()):
                 try:
@@ -71,7 +71,7 @@ class Runner:
                         timeout=None if interactive else timeout,
                         env=child_environment(env), umask=umask, cwd=cwd)
                 except (OSError, subprocess.TimeoutExpired) as exc:
-                    raise InstallerError(f"No se pudo ejecutar {args[0]}: {exc}") from exc
+                    raise InstallerError(f"Unable to execute {args[0]}: {exc}") from exc
             captured.seek(0)
             errors.seek(0)
             text = captured.read().decode("utf-8", "replace")
@@ -79,7 +79,7 @@ class Runner:
             self.record(text + error)
             if result.returncode and check:
                 detail = self.redact((error + "\n" + text)[-4800:])
-                raise InstallerError(f"Falló {label or args[0]} (código {result.returncode}).\n{detail}")
+                raise InstallerError(f"Failed: {label or args[0]} (exit code {result.returncode}).\n{detail}")
             return result.returncode, text
 
 

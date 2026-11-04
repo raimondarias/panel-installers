@@ -12,8 +12,8 @@ class MaintenanceMixin:
         self.install_wings()
 
     def uninstall_both(self):
-        self.ui.confirm("DESINSTALAR PANEL Y WINGS")
-        # Mantener Panel accesible si la copia o desinstalación de Wings falla.
+        self.ui.confirm("UNINSTALL PANEL AND WINGS")
+        # Keep the Panel reachable if the Wings backup or removal fails.
         if self.p.wings_state.exists():
             self.uninstall_wings(confirmed=True)
         if self.p.state.exists():
@@ -66,7 +66,7 @@ class MaintenanceMixin:
         if database.state_file.exists():
             saved = database.load()
             if saved.get("status") != "ready":
-                self.ui.confirm("REANUDAR PANEL")
+                self.ui.confirm("RESUME PANEL")
                 database.local(saved)
                 return
         if self.p.wings_state.exists() and self.load(self.p.wings_state)["status"] != "ready":
@@ -126,7 +126,7 @@ class MaintenanceMixin:
                 self.ui.say(self.ui.tr('Needs attention: {component} — {detail}').format(
                     component=component, detail=self.run.redact(str(exc))), 'error')
         if installed['panel'] != 'absent' or installed['wings'] != 'absent':
-            self.ui.say(f"Log privado: {self.p.log}")
+            self.ui.say(f"Private log: {self.p.log}")
 
     def logs(self):
         if self.p.state.exists():
@@ -146,17 +146,17 @@ class MaintenanceMixin:
             self.ui.say(self.run.redact(text))
 
     def restart(self):
-        self.ui.confirm("REINICIAR SERVICIOS")
+        self.ui.confirm("RESTART SERVICES")
         if self.p.state.exists():
             state = self.panel_state()
             if state["status"] != "ready":
-                raise InstallerError("El Panel no está listo; reanuda la instalación/actualización primero.")
+                raise InstallerError("The Panel is not ready. Resume its installation/update first.")
             if state.get("method") == "standalone":
                 backend = self.native(state)
                 self.run.run(["systemctl", "restart", backend.queue, backend.scheduler])
                 backend.health()
             else:
-                self.dc("restart", "panel", label="Reiniciando Panel")
+                self.dc("restart", "panel", label="Restarting the Panel")
                 self.dc("up", "-d", "--wait", "--wait-timeout", "360", "panel")
         if self.p.wings_state.exists():
             self.start_wings()
@@ -164,7 +164,7 @@ class MaintenanceMixin:
     def mail(self):
         state = self.panel_state()
         self.smtp_settings(state)
-        self.ui.confirm("CAMBIAR SMTP")
+        self.ui.confirm("CHANGE SMTP")
         self.save_panel(state)
         if state.get("method") == "standalone":
             backend = self.native(state)
@@ -173,7 +173,7 @@ class MaintenanceMixin:
             self.run.run(["systemctl", "restart", backend.queue])
             backend.health()
         else:
-            self.dc("up", "-d", "--wait", "--wait-timeout", "360", "panel", label="Aplicando SMTP")
+            self.dc("up", "-d", "--wait", "--wait-timeout", "360", "panel", label="Applying SMTP settings")
 
     def admin(self):
         state = self.panel_state()
@@ -185,11 +185,11 @@ class MaintenanceMixin:
             self.ui.card("Save your generated password", [self.admin_password])
 
     def firewall(self):
-        self.ui.say("Permite en el firewall del proveedor y del host:")
-        self.ui.say("Panel: TCP 80/443. Wings: TCP 8080 (o el puerto del nodo) y TCP 2022 para SFTP.")
-        self.ui.say("Juegos: sus allocations TCP/UDP. SSH: conserva tu puerto de administración.")
-        self.ui.say("Docker publica puertos mediante sus propias reglas; usa DOCKER-USER/nftables para restringirlos.")
-        self.ui.say("No se activan firewalls ni se cambian reglas automáticamente.")
+        self.ui.say("Allow these ports in your provider and host firewalls:")
+        self.ui.say("Panel: TCP 80/443. Wings: TCP 8080 (or your node's API port) and TCP 2022 for SFTP.")
+        self.ui.say("Games: their TCP/UDP allocations. Keep your SSH administration port open.")
+        self.ui.say("Docker publishes ports using its own rules; restrict them with DOCKER-USER/nftables.")
+        self.ui.say("Firewalls and their rules are not changed automatically.")
 
     def actions(self):
         return {"install-all": self.install_both, "install-panel": self.install_panel,

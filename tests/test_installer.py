@@ -70,7 +70,7 @@ class FakeRunner:
     def redact(self, text):
         for value in self.secrets:
             if value:
-                text = text.replace(value, "[OCULTO]")
+                text = text.replace(value, "[REDACTED]")
         return text
 
     def run(self, args, **kwargs):
@@ -379,7 +379,7 @@ class BackupTests(BaseTest):
     def test_empty_dump_is_rejected(self):
         self.panel()
         self.runner.dump = b""
-        with self.assertRaisesRegex(app.InstallerError, "vacío"):
+        with self.assertRaisesRegex(app.InstallerError, "empty"):
             self.installer.backup_panel()
 
     def test_backup_preserves_previously_stopped_services(self):
@@ -401,7 +401,7 @@ class BackupTests(BaseTest):
         self.panel()
         archive = self.installer.backup_panel()
         self.ui.answers = [str(archive)]
-        with self.assertRaisesRegex(app.InstallerError, "vacío"):
+        with self.assertRaisesRegex(app.InstallerError, "empty"):
             self.installer.restore_panel()
 
     def test_failed_import_never_starts_panel(self):
@@ -513,7 +513,7 @@ class MaintenanceTests(BaseTest):
         self.installer.uninstall_panel()
         self.assertFalse(self.paths.panel.exists())
         self.assertEqual(len(list(self.paths.backups.glob("*.tar.gz"))), 1)
-        self.assertIn("BORRAR PANEL", self.ui.confirmations)
+        self.assertIn("DELETE PANEL", self.ui.confirmations)
 
     def test_uninstall_aborts_if_backup_fails(self):
         self.panel()
@@ -596,7 +596,7 @@ class InteractionTests(BaseTest):
 
     def test_confirmation_refused_by_default(self):
         with patch("builtins.input", return_value=""), self.assertRaises(app.Cancelled):
-            app.UI(False).confirm("BORRAR PANEL")
+            app.UI(False).confirm("DELETE PANEL")
 
     def test_animation_in_real_pseudoterminal(self):
         master, slave = pty.openpty()
@@ -643,7 +643,7 @@ class RunnerTests(BaseTest):
             runner.run([sys.executable, "-c", "import sys; print('sensitive-value', file=sys.stderr); sys.exit(7)"])
         self.assertNotIn("sensitive-value", str(raised.exception))
         self.assertNotIn("sensitive-value", self.paths.log.read_text())
-        self.assertIn("código 7", str(raised.exception))
+        self.assertIn("exit code 7", str(raised.exception))
 
     def test_command_arguments_are_not_shell_executed(self):
         runner = app.Runner(self.ui, self.paths.log)
@@ -662,7 +662,7 @@ class RunnerTests(BaseTest):
 
     def test_closed_stdin_cannot_confirm(self):
         with patch("builtins.input", side_effect=EOFError), self.assertRaises(app.Cancelled):
-            app.UI(False).confirm("BORRAR PANEL")
+            app.UI(False).confirm("DELETE PANEL")
 
 
 if __name__ == "__main__":
