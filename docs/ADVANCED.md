@@ -32,6 +32,14 @@ Every **Update Panel v2** records the verified backup taken before its code or s
 
 Application keys, credentials, certificates, Redis data and current settings such as SMTP are retained; the rollback refuses a backup whose application keys differ. When an update fails, the Panel stayed stopped after its backup, so the offered rollback skips the safety copy without losing data. If you decline, **Resume installation** later offers to continue the update or roll back. Wings updates already revert their binary or image automatically when the new version does not start.
 
+## Panel and Wings compatibility
+
+Before installing or updating Wings, updating the Panel or rolling it back, the installer compares the planned versions with the other component installed on this machine. Panel v2 requires Wings 1.x, v1.13.0 or newer; other pairs are refused before anything is downloaded. A compatible pair that the deployment matrix has not tested together (the validated pair is the installer's default Panel and Wings release) shows a warning and asks before continuing. Remote nodes are not inspected.
+
+## Local backup retention
+
+Updates, removals, rollbacks and manual backups each leave a copy in `/var/backups/pterodactyl-installer/`. After every new copy, the installer keeps the newest five Panel archives and five Wings configuration copies. **Local backup retention** (shortcut 36, `backup-retention`) changes the number; 0 keeps everything. The active update rollback point, its safety copy and copies owned by the encrypted schedule are never removed, and neither are files the installer did not name. Copy what you must keep off the server.
+
 ## Encrypted scheduled backups
 
 Use **Schedule encrypted backups**. Choose a local Restic repository, `sftp:user@host:path` or `s3:https://endpoint/bucket`, supply the encryption password, select daily/weekly/hourly. The schedule includes the installed Panel and/or Wings configuration. A Wings-only machine can schedule configuration backups without a local Panel. S3 credentials and the encryption password are stored in private root-only files. SFTP requires preconfigured SSH keys and a verified host key.

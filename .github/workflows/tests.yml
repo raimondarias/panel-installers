@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Ruff
         run: |
-          python3 -m pip install --user ruff==0.8.6
+          python3 -m pip install --user --break-system-packages ruff==0.8.6
           python3 -m ruff check .
           python3 -m ruff format --check .
       - name: Translation coverage

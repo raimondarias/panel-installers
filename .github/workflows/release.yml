@@ -35,7 +35,7 @@ jobs:
           sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y shellcheck nginx mariadb-server php-cli restic
-          python3 -m pip install --user ruff==0.8.6
+          python3 -m pip install --user --break-system-packages ruff==0.8.6
       - name: Lint and regression tests
         if: steps.version.outputs.publish == 'true'
         run: |

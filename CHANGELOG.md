@@ -1,12 +1,26 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 — 2026-11-04
 
+### Installer self-update and CI releases
+- Publish every version from CI as a GitHub Release (per-language runtime archives, catalogues, `install.sh` and `SHA256SUMS`). Generated packages are no longer committed.
+- When run again, the bootstrap checks the latest release after the language question. A newer, checksum-verified `install.sh` replaces the saved bootstrap and restarts with the chosen language; `--no-self-update` keeps the current version.
+
+### Recovery and safety
 - Add **Roll back Panel update** (shortcut 35, `rollback-panel`) for Docker and standalone Panels. Each update records its verified pre-update backup and previous version; a rollback recreates the database from that backup, reinstates the previous image or application and keeps keys, credentials, certificates and current settings.
 - Offer an immediate rollback when a Panel update fails, and let **Resume installation** choose between continuing an incomplete update and rolling it back.
 - Show a Panel update plan (current → target version and rollback availability) before confirmation.
+- Check Panel ↔ Wings compatibility before Wings install/update and Panel update/rollback: block impossible pairs and ask before using a pair outside the validated matrix.
+- Keep the newest 5 local Panel archives and Wings configuration copies of each kind (action 36, `backup-retention`); rollback points, safety copies and scheduled copies are never pruned.
+- Rotate the private installer log at 5 MiB (three generations), stop inheriting tokens and storage credentials into child commands and cap Wings/Panel download sizes.
+
+### Interface
 - Show friendly component statuses, installed versions and an actionable hint for interrupted operations in the TUI dashboard and the numbered menu. Report each operation's duration.
-- Split the installer core into focused host, Panel, Wings and maintenance modules; `ptero.core` keeps its public API.
+
+### Maintainability
+- Split the installer core into focused host, Panel, Wings and maintenance modules, and the standalone backend into package, web and lifecycle modules; `ptero.core` and `ptero.native` keep their public API.
+- Use English as the single source language for every message; `scripts/check_translations.py` fails CI when a user-visible message has no translation. Log redaction now reads `[REDACTED]`.
+- Add `pyproject.toml`, Ruff lint and formatting in CI, and a shared streaming SHA-256 helper.
 
 ## 1.2.1 — 2026-10-24
 

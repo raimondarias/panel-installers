@@ -1,6 +1,6 @@
 # Pterodactyl Installer
 
-**1.2.1** · Guided installation and maintenance of Pterodactyl Panel v2 and Wings on Ubuntu and Debian.
+**1.3.0** · Guided installation and maintenance of Pterodactyl Panel v2 and Wings on Ubuntu and Debian.
 
 An interactive terminal interface in **English, Español and Português (Brasil)**, with keyboard navigation, grouped actions, editable forms and animated task progress.
 
@@ -22,6 +22,8 @@ The first question is **“Which language would you like to use?”**. The boots
 - Native or Docker game SQL host provisioning and automatic Panel registration.
 - Panel and Wings-configuration backups, encrypted schedules and guided Panel recovery.
 - Guided Panel update rollback to the previous version and its compatible database.
+- Panel ↔ Wings compatibility checks and automatic pruning of old local backups.
+- Self-updating launcher: re-running a saved `ptero-setup.sh` upgrades it to the latest verified release.
 - Install, update, diagnose and remove managed components.
 
 Maintenance, backup, removal and node operations are implemented. A fresh machine shows the installation prerequisites for each action; install the required component before using its maintenance tools.
@@ -58,7 +60,7 @@ Ubuntu **22.04 / 24.04 / 26.04** or Debian **12 / 13**, amd64 or arm64, with sys
 - [Nodes, recovery and backups](docs/ADVANCED.md)
 - [Full preview](docs/PREVIEW.md) · [Terminal interface](docs/TUI.md)
 - [Testing](docs/TESTING.md) · [Verification report](test-results/REPORT.md)
-- [Changelog](CHANGELOG.md) · [Releases](https://github.com/raimondarias/pterodactyl-installer/releases)
+- [Changelog](CHANGELOG.md) · [Releases](https://github.com/raimondarias/pterodactyl-installer/releases) · [Release process](docs/RELEASING.md)
 - [Roadmap](docs/ROADMAP.md)
 
 Standalone and Docker deployments were validated in isolated test machines. The temporary domain lab has been retired. See the verification report for completed tests and infrastructure limits.

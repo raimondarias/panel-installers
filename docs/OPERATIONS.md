@@ -105,13 +105,14 @@ The node API is accessed over verified HTTPS without putting the Auto-Deploy tok
 | 31–32 | Detailed health / resume installation |
 | 33–34 | Install remote Wings / prepare remote game SQL |
 | 35 | Roll back the last Panel update |
+| 36 | Local backup retention |
 | 0 | Exit |
 
 All listed operations are implemented. A component must be installed and configured before actions that depend on it can run. On a fresh machine, select an action to see its prerequisite and the installation step that prepares it.
 
 In the TUI, these operations are grouped under **Install**, **Maintenance**, **Game databases**, **Backups**, **Remove**, **Nodes** and **Preferences**. The numbers above are stable keyboard shortcuts and the layout used by `--plain`.
 
-These operations are also available as direct commands: `install-all`, `install-panel`, `install-wings`, `uninstall-all`, `uninstall-panel`, `uninstall-wings`, `update-panel`, `update-wings`, `configure-wings`, `tls-wings`, `backup-panel`, `backup-wings`, `restore-panel`, `diagnose`, `restart`, `logs`, `smtp`, `admin`, `firewall`, `configure-database`, `database-credentials`, `create-node`, `backup-schedule`, `backup-run`, `backup-download`, `health`, `resume`, `remote-node`, `remote-database` and `rollback-panel`. Confirmations still apply.
+These operations are also available as direct commands: `install-all`, `install-panel`, `install-wings`, `uninstall-all`, `uninstall-panel`, `uninstall-wings`, `update-panel`, `update-wings`, `configure-wings`, `tls-wings`, `backup-panel`, `backup-wings`, `restore-panel`, `diagnose`, `restart`, `logs`, `smtp`, `admin`, `firewall`, `configure-database`, `database-credentials`, `create-node`, `backup-schedule`, `backup-run`, `backup-download`, `health`, `resume`, `remote-node`, `remote-database`, `rollback-panel` and `backup-retention`. Confirmations still apply.
 
 ## Backups, updates and removal
 
